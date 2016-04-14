@@ -50,8 +50,8 @@ namespace VoxelMash.Grids
                 return new ChunkSpaceCoords(
                     (ChunkSpaceLevel)((byte)ACoords.Level + 1),
                     (byte)((ACoords.FX << 1) | APath & 0x01),
-                    (byte)((ACoords.FY << 1) | APath & 0x02),
-                    (byte)((ACoords.FZ << 1) | APath & 0x04));
+                    (byte)((ACoords.FY << 1) | ((APath & 0x02) >> 1)),
+                    (byte)((ACoords.FZ << 1) | ((APath & 0x04) >> 2)));
             }
         }
         #endregion
@@ -76,12 +76,15 @@ namespace VoxelMash.Grids
         {
             return ACoords.Level == ChunkSpaceLevel.Voxel
                 ? ACoords
-                : ChunkSpaceCoords.StepDown(ACoords, APath);
+                : ChunkSpaceCoords.Unchecked_StepDown(ACoords, APath);
         }
         public static ChunkSpaceCoords StepDown(
             ChunkSpaceCoords ACoords,
             IEnumerable<byte> APaths)
         {
+            if (APaths == null)
+                throw new ArgumentNullException("APaths");
+
             return APaths.Aggregate(ACoords, ChunkSpaceCoords.StepDown);
         }
         #endregion
@@ -159,6 +162,26 @@ namespace VoxelMash.Grids
                 default:
                     throw new FormatException(String.Format("Invalid format specifier \"{0}\".", AFormat));
             }
+        }
+        #endregion
+
+        #region Operator shortcuts
+        public ChunkSpaceCoords Add(ChunkSpaceCoords AOther)
+        {
+            return ChunkSpaceCoords.Add(this, AOther);
+        }
+
+        public ChunkSpaceCoords StepUp(byte ASteps = 1)
+        {
+            return ChunkSpaceCoords.StepUp(this, ASteps);
+        }
+        public ChunkSpaceCoords StepDown(byte APath = 0x00)
+        {
+            return ChunkSpaceCoords.StepDown(this, APath);
+        }
+        public ChunkSpaceCoords StepDown(IEnumerable<byte> APath)
+        {
+            return ChunkSpaceCoords.StepDown(this, APath);
         }
         #endregion
 
