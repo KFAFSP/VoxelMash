@@ -20,9 +20,9 @@ namespace VoxelMash.Grids
 
                 return new ChunkSpaceCoords(
                     (ChunkSpaceLevel)Math.Max((byte)ALeft.FLevel, (byte)ARight.Level),
-                    (byte)(ALeft.FX << bDiff + ARight.FX),
-                    (byte)(ALeft.FY << bDiff + ARight.FY),
-                    (byte)(ALeft.FZ << bDiff + ARight.FZ));
+                    (byte)((ALeft.FX << bDiff) + ARight.FX),
+                    (byte)((ALeft.FY << bDiff) + ARight.FY),
+                    (byte)((ALeft.FZ << bDiff) + ARight.FZ));
             }
         }
         private static ChunkSpaceCoords Unchecked_StepUp(
@@ -49,9 +49,9 @@ namespace VoxelMash.Grids
             {
                 return new ChunkSpaceCoords(
                     (ChunkSpaceLevel)((byte)ACoords.Level + 1),
-                    (byte)(ACoords.FX << 1 | APath & 0x01),
-                    (byte)(ACoords.FY << 1 | APath & 0x02),
-                    (byte)(ACoords.FZ << 1 | APath & 0x04));
+                    (byte)((ACoords.FX << 1) | APath & 0x01),
+                    (byte)((ACoords.FY << 1) | APath & 0x02),
+                    (byte)((ACoords.FZ << 1) | APath & 0x04));
             }
         }
         #endregion
