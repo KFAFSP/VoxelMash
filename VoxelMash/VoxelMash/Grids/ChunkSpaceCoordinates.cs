@@ -116,7 +116,7 @@ namespace VoxelMash.Grids
             }
         }
 
-        public ChunkSpaceCoords FromBytes(byte[] ABytes)
+        public static ChunkSpaceCoords FromBytes(byte[] ABytes)
         {
             if (ABytes == null)
                 throw new ArgumentNullException("ABytes");
