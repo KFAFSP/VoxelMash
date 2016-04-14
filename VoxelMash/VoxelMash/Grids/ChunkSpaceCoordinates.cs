@@ -97,10 +97,11 @@ namespace VoxelMash.Grids
             byte AX, byte AY, byte AZ)
         {
             this.FLevel = ALevel;
+            byte bMask = unchecked((byte)(0xFF >> (byte)(8 - ALevel)));
 
-            this.FX = AX;
-            this.FY = AY;
-            this.FZ = AZ;
+            this.FX = (byte)(AX & bMask);
+            this.FY = (byte)(AY & bMask);
+            this.FZ = (byte)(AZ & bMask);
         }
 
         #region System.Object overrides
