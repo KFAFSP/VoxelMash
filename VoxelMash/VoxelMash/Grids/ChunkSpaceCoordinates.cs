@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -220,6 +221,7 @@ namespace VoxelMash.Grids
         #endregion
 
         #region IEquatable<ChunkSpaceCoords>
+        [Pure]
         public bool Equals(ChunkSpaceCoords AOther)
         {
             return this.FLevel == AOther.FLevel
@@ -230,6 +232,7 @@ namespace VoxelMash.Grids
         #endregion
 
         #region IComparable<ChunkSpaceCoords>
+        [Pure]
         public int CompareTo(ChunkSpaceCoords AOther)
         {
             if (this.FLevel != AOther.FLevel)
@@ -244,6 +247,7 @@ namespace VoxelMash.Grids
         #endregion
 
         #region IFormattable
+        [Pure]
         public string ToString(string AFormat, IFormatProvider AFormatProvider)
         {
             AFormat = AFormat != null ? AFormat.ToUpperInvariant() : "G";
@@ -271,19 +275,23 @@ namespace VoxelMash.Grids
         #endregion
 
         #region Operator shortcuts
+        [Pure]
         public ChunkSpaceCoords Add(ChunkSpaceCoords AOther)
         {
             return ChunkSpaceCoords.Add(this, AOther);
         }
 
+        [Pure]
         public ChunkSpaceCoords StepUp(byte ASteps = 1)
         {
             return ChunkSpaceCoords.StepUp(this, ASteps);
         }
+        [Pure]
         public ChunkSpaceCoords StepDown(byte APath = 0x00)
         {
             return ChunkSpaceCoords.StepDown(this, APath);
         }
+        [Pure]
         public ChunkSpaceCoords StepDown(IEnumerable<byte> APath)
         {
             return ChunkSpaceCoords.StepDown(this, APath);
