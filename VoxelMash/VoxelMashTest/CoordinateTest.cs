@@ -83,6 +83,8 @@ namespace VoxelMashTest
             ChunkSpaceCoords cscLong = this.Coords(8, 200, 123, 199);
             this.BytesAssert(aLong, ChunkSpaceCoords.ToBytes(cscLong));
             Assert.AreEqual(cscLong, ChunkSpaceCoords.FromBytes(aLong));
+
+            Assert.AreEqual(this.Coords(4, 12, 11, 2), ChunkSpaceCoords.FromCanonic("(4, 12|11|2)"));
         }
 
         [TestMethod]
