@@ -96,5 +96,18 @@ namespace VoxelMashTest
             // (4, 0|1|0) < (4, 1|1|0)
             Assert.IsTrue(this.Coords(4, 0, 1, 0) < this.Coords(4, 1, 1, 0));
         }
+
+        [TestMethod]
+        public void ParentChildRelation()
+        {
+            // (0, 0|0|0) is parent of anything
+            Assert.IsTrue(this.Coords((byte)0, 0, 0, 0).IsParentOf(this.Coords(8, 1, 2, 3)));
+
+            // (2, 1|1|1) is parent of (3, 2|3|2)
+            Assert.IsTrue(this.Coords(2, 1, 1, 1).IsParentOf(this.Coords(3, 2, 3, 2)));
+
+            // (2, 1|1|1) is not parent of (3, 6|1|2)
+            Assert.IsFalse(this.Coords(2, 1, 1, 1).IsParentOf(this.Coords(3, 6, 1, 2)));
+        }
     }
 }

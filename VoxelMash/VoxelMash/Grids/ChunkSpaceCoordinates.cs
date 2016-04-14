@@ -20,7 +20,7 @@ namespace VoxelMash.Grids
         {
             unchecked
             {
-                byte bDiff = (byte)((byte)ALeft.Level - (byte)ARight.Level);
+                byte bDiff = (byte)((byte)ALeft.FLevel - (byte)ARight.FLevel);
 
                 return new ChunkSpaceCoords(
                     (ChunkSpaceLevel)Math.Max((byte)ALeft.FLevel, (byte)ARight.Level),
@@ -93,6 +93,25 @@ namespace VoxelMash.Grids
         }
         #endregion
 
+        #region Tree operations
+        public static bool IsParent(
+            ChunkSpaceCoords AParent,
+            ChunkSpaceCoords AChild)
+        {
+            if (AParent.FLevel >= AChild.FLevel)
+                return false;
+
+            unchecked
+            {
+                byte bDiff = (byte)((byte)AChild.FLevel - (byte)AParent.FLevel);
+
+                return AChild.FX >> bDiff == AParent.FX
+                       && AChild.FY >> bDiff == AParent.FY
+                       && AChild.FZ >> bDiff == AParent.FZ;
+            }
+        }
+        #endregion
+
         #region Serialization functions
         public static byte[] ToBytes(ChunkSpaceCoords ACoords)
         {
@@ -159,7 +178,6 @@ namespace VoxelMash.Grids
                 }
             }
         }
-
         public static ChunkSpaceCoords FromCanonic(string ACanonic)
         {
             if (ACanonic == null)
@@ -296,6 +314,17 @@ namespace VoxelMash.Grids
         {
             return ChunkSpaceCoords.StepDown(this, APath);
         }
+
+        [Pure]
+        public bool IsParentOf(ChunkSpaceCoords AChild)
+        {
+            return ChunkSpaceCoords.IsParent(this, AChild);
+        }
+        [Pure]
+        public bool IsChildOf(ChunkSpaceCoords AParent)
+        {
+            return ChunkSpaceCoords.IsParent(AParent, this);
+        }
         #endregion
 
         public ChunkSpaceLevel Level
@@ -312,6 +341,11 @@ namespace VoxelMash.Grids
                        | this.FZ << 16
                        | (byte)this.FLevel << 24;
             }
+        }
+
+        public ChunkSpaceCoords Parent
+        {
+            get { return this.StepUp(); }
         }
 
         public byte X
