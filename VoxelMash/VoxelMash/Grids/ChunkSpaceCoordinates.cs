@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace VoxelMash.Grids
 {
@@ -10,6 +10,8 @@ namespace VoxelMash.Grids
         IComparable<ChunkSpaceCoords>,
         IFormattable
     {
+        private static Regex _FCanonicRegex = new Regex(@"^\((?<Level>[0-8]), (?<X>[0-9]+)\|(?<Y>[0-9]+)\|(?<Z>[0-9]+)\)$");
+
         #region Unchecked coordinate math functions
         private static ChunkSpaceCoords Unchecked_Add(
             ChunkSpaceCoords ALeft,
@@ -156,6 +158,29 @@ namespace VoxelMash.Grids
                 }
             }
         }
+
+        public static ChunkSpaceCoords FromCanonic(string ACanonic)
+        {
+            if (ACanonic == null)
+                throw new ArgumentNullException("ACanonic");
+
+            Match mMatch = ChunkSpaceCoords._FCanonicRegex.Match(ACanonic);
+            if (!mMatch.Success)
+                throw new FormatException("Input string is not canonic.");
+
+            try
+            {
+                return new ChunkSpaceCoords(
+                    (ChunkSpaceLevel)Byte.Parse(mMatch.Groups["Level"].Value),
+                    Byte.Parse(mMatch.Groups["X"].Value),
+                    Byte.Parse(mMatch.Groups["Y"].Value),
+                    Byte.Parse(mMatch.Groups["Z"].Value));
+            }
+            catch
+            {
+                throw new FormatException("Invalid canonic chunk space coordinate string.");
+            }
+        }
         #endregion
 
         private readonly ChunkSpaceLevel FLevel;
@@ -227,6 +252,17 @@ namespace VoxelMash.Grids
             {
                 case "G":
                     return String.Format(AFormatProvider, "({0}, {1}|{2}|{3})", (byte)this.FLevel, this.FX, this.FY, this.FZ);
+
+                case "L":
+                    return String.Format(AFormat, "{0}", (byte)this.FLevel);
+                case "LN":
+                    return String.Format(AFormat, "{0}", this.FLevel);
+                case "X":
+                    return String.Format(AFormat, "{0}", this.FX);
+                case "Y":
+                    return String.Format(AFormat, "{0}", this.FY);
+                case "Z":
+                    return String.Format(AFormat, "{0}", this.FZ);
 
                 default:
                     throw new FormatException(String.Format("Invalid format specifier \"{0}\".", AFormat));
