@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace VoxelMash.Grids
 {
@@ -89,6 +90,68 @@ namespace VoxelMash.Grids
         }
         #endregion
 
+        #region Serialization functions
+        public static byte[] ToBytes(ChunkSpaceCoords ACoords)
+        {
+            unchecked
+            {
+                if (ACoords.FLevel == ChunkSpaceLevel.Level8)
+                    return BitConverter.GetBytes(ACoords.AsInt32);
+
+                if (ACoords.FLevel > ChunkSpaceLevel.Block)
+                {
+                    return new []
+                    {
+                        (byte)(((byte)ACoords.FLevel << 5) | (ACoords.FZ >> 2)),
+                        (byte)((ACoords.FZ & 0x03 << 6) | (ACoords.FY >> 1)),
+                        (byte)((ACoords.FY & 0x01 << 7) | ACoords.FX)
+                    };
+                }
+
+                return new []
+                {
+                    (byte)(((byte)ACoords.FLevel << 4) | ACoords.FZ),
+                    (byte)((ACoords.FY << 4) | ACoords.FX)
+                };
+            }
+        }
+
+        public ChunkSpaceCoords FromBytes(byte[] ABytes)
+        {
+            if (ABytes == null)
+                throw new ArgumentNullException("ABytes");
+
+            unchecked
+            {
+                switch (ABytes.Length)
+                {
+                    case 2:
+                        return new ChunkSpaceCoords(
+                            (ChunkSpaceLevel)(ABytes[0] >> 4),
+                            (byte)(ABytes[1] & 0x0F),
+                            (byte)(ABytes[1] >> 4),
+                            (byte)(ABytes[0] & 0x0F));
+                    case 3:
+                        return new ChunkSpaceCoords(
+                            (ChunkSpaceLevel)(ABytes[0] >> 5),
+                            (byte)(ABytes[2] & 0x7F),
+                            (byte)((ABytes[2] >> 7) | (ABytes[1] & 0x3F)),
+                            (byte)((ABytes[1] >> 6) | (ABytes[0] & 0x1F)));
+
+                    case 4:
+                        return new ChunkSpaceCoords(
+                            (ChunkSpaceLevel)ABytes[0],
+                            ABytes[3],
+                            ABytes[2],
+                            ABytes[1]);
+
+                    default:
+                        throw new FormatException("Invalid coordinate byte format.");
+                }
+            }
+        }
+        #endregion
+
         private readonly ChunkSpaceLevel FLevel;
 
         private readonly byte FX;
@@ -106,7 +169,7 @@ namespace VoxelMash.Grids
             this.FY = (byte)(AY & bMask);
             this.FZ = (byte)(AZ & bMask);
         }
-
+        
         #region System.Object overrides
         public override bool Equals(object AOther)
         {
