@@ -50,7 +50,7 @@ namespace VoxelMashTest
             Assert.AreEqual(this.Coords(7, 1, 1, 1) + this.Coords(8, 1, 1, 1), this.Coords(7, 1, 1, 1).StepDown(0x07));
 
             // (0, 0|0|0) down 0|0|0 down 1|1|1 down 0|1|0 down 1|0|1 = (4, 5, 6, 5)
-            Assert.AreEqual(this.Coords(4, 5, 6, 5), this.Coords((byte)0, 0, 0, 0).StepDown(new byte[]{0x00, 0x07, 0x02, 0x05}));
+            Assert.AreEqual(this.Coords(4, 5, 6, 5), this.Coords((byte)0, 0, 0, 0).StepDown(new byte[] { 0x00, 0x07, 0x02, 0x05 }));
         }
 
         [TestMethod]
@@ -108,6 +108,19 @@ namespace VoxelMashTest
 
             // (2, 1|1|1) is not parent of (3, 6|1|2)
             Assert.IsFalse(this.Coords(2, 1, 1, 1).IsParentOf(this.Coords(3, 6, 1, 2)));
+
+            // (2, 1|1|1) is parent of (3, 2|3|3)
+            Assert.AreEqual(this.Coords(2, 1, 1, 1), this.Coords(3, 2, 3, 3).Parent);
+        }
+
+        [TestMethod]
+        public void Paths()
+        {
+            // (0, 0|0|0) path is empty
+            Assert.IsFalse(this.Coords((byte)0, 0, 0, 0).RootPath.Any());
+
+            // (4, 5|6|5) path is { 0x00, 0x07, 0x02, 0x05 }
+            this.BytesAssert(new byte[] { 0x00, 0x07, 0x02, 0x05 }, this.Coords(4, 5, 6, 5).RootPath.ToArray());
         }
     }
 }

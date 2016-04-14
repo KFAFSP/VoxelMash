@@ -135,13 +135,11 @@ namespace VoxelMash.Grids
 
             unchecked
             {
-                byte bMask = (byte)(1 << (byte)ACoords.FLevel);
                 for (int iLevel = (byte)ACoords.FLevel - 1; iLevel >= 0; iLevel--)
                 {
-                    yield return (byte)(((ACoords.FX & bMask) >> iLevel)
-                                        | (((ACoords.FY & bMask) >> iLevel) << 1)
-                                        | (((ACoords.FZ & bMask) >> iLevel) << 2));
-                    bMask = (byte)(bMask >> 1);
+                    yield return (byte)(((ACoords.FX >> iLevel) & 0x01)
+                                        | (((ACoords.FY >> iLevel) & 0x01) << 1)
+                                        | (((ACoords.FZ >> iLevel) & 0x01) << 2));
                 }
             }
         }
