@@ -16,13 +16,13 @@ namespace VoxelMash.Grids
         {
             unchecked
             {
-                byte bDiff = (byte)((byte)ARight.Level - (byte)ALeft.Level);
+                byte bDiff = (byte)((byte)ALeft.Level - (byte)ARight.Level);
 
                 return new ChunkSpaceCoords(
                     (ChunkSpaceLevel)Math.Max((byte)ALeft.FLevel, (byte)ARight.Level),
-                    (byte)((ALeft.FX << bDiff) + ARight.FX),
-                    (byte)((ALeft.FY << bDiff) + ARight.FY),
-                    (byte)((ALeft.FZ << bDiff) + ARight.FZ));
+                    (byte)((ARight.FX << bDiff) + ALeft.FX),
+                    (byte)((ARight.FY << bDiff) + ALeft.FY),
+                    (byte)((ARight.FZ << bDiff) + ALeft.FZ));
             }
         }
         private static ChunkSpaceCoords Unchecked_StepUp(
