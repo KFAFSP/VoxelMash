@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using VoxelMash.Grids;
@@ -17,6 +19,11 @@ namespace VoxelMashTest
         private ChunkSpaceCoords Coords(byte ALevel, byte AX, byte AY, byte AZ)
         {
             return this.Coords((ChunkSpaceLevel)ALevel, AX, AY, AZ);
+        }
+
+        private void BytesAssert(byte[] AExpected, byte[] AActual)
+        {
+            Assert.IsTrue(AExpected.SequenceEqual(AActual), String.Format("Expected: {{{0}}}, Actual: {{{1}}}", String.Join(", ", AExpected), String.Join(", ", AActual)));
         }
 
         [TestMethod]
@@ -54,6 +61,28 @@ namespace VoxelMashTest
 
             // (0, 0|0|0) up = (0, 0|0|0)
             Assert.AreEqual(this.Coords((byte)0, 0, 0, 0), this.Coords((byte)0, 0, 0, 0).StepUp());
+        }
+
+        [TestMethod]
+        public void Serialization()
+        {
+            // Example : (4, 12|11|2)
+            byte[] aShort = {0x42, 0xBC};
+            ChunkSpaceCoords cscShort = this.Coords(4, 12, 11, 2);
+            this.BytesAssert(aShort, ChunkSpaceCoords.ToBytes(cscShort));
+            Assert.AreEqual(cscShort, ChunkSpaceCoords.FromBytes(aShort));
+
+            // Example : (5, 2|4|23)
+            byte[] aMedium = {0xA5, 0xC2, 0x02};
+            ChunkSpaceCoords cscMedium = this.Coords(5, 2, 4, 23);
+            this.BytesAssert(aMedium, ChunkSpaceCoords.ToBytes(cscMedium));
+            Assert.AreEqual(cscMedium, ChunkSpaceCoords.FromBytes(aMedium));
+            
+            // Example : (8, 200|123|199)
+            byte[] aLong = {8, 199, 123, 200};
+            ChunkSpaceCoords cscLong = this.Coords(8, 200, 123, 199);
+            this.BytesAssert(aLong, ChunkSpaceCoords.ToBytes(cscLong));
+            Assert.AreEqual(cscLong, ChunkSpaceCoords.FromBytes(aLong));
         }
     }
 }

@@ -96,15 +96,21 @@ namespace VoxelMash.Grids
             unchecked
             {
                 if (ACoords.FLevel == ChunkSpaceLevel.Level8)
-                    return BitConverter.GetBytes(ACoords.AsInt32);
+                {
+                    byte[] aBytes = BitConverter.GetBytes(ACoords.AsInt32);
+                    if (BitConverter.IsLittleEndian)
+                        Array.Reverse(aBytes);
 
-                if (ACoords.FLevel > ChunkSpaceLevel.Block)
+                    return aBytes;
+                }
+
+                if (ACoords.FLevel > ChunkSpaceLevel.Level4)
                 {
                     return new []
                     {
                         (byte)(((byte)ACoords.FLevel << 5) | (ACoords.FZ >> 2)),
-                        (byte)((ACoords.FZ & 0x03 << 6) | (ACoords.FY >> 1)),
-                        (byte)((ACoords.FY & 0x01 << 7) | ACoords.FX)
+                        (byte)(((ACoords.FZ & 0x03) << 6) | (ACoords.FY >> 1)),
+                        (byte)(((ACoords.FY & 0x01) << 7) | ACoords.FX)
                     };
                 }
 
@@ -135,8 +141,8 @@ namespace VoxelMash.Grids
                         return new ChunkSpaceCoords(
                             (ChunkSpaceLevel)(ABytes[0] >> 5),
                             (byte)(ABytes[2] & 0x7F),
-                            (byte)((ABytes[2] >> 7) | (ABytes[1] & 0x3F)),
-                            (byte)((ABytes[1] >> 6) | (ABytes[0] & 0x1F)));
+                            (byte)((ABytes[2] >> 7) | ((ABytes[1] & 0x3F) << 1)),
+                            (byte)((ABytes[1] >> 6) | ((ABytes[0] & 0x1F) << 2)));
 
                     case 4:
                         return new ChunkSpaceCoords(
