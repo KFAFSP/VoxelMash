@@ -208,7 +208,7 @@ namespace VoxelMash.Grids
         public int CompareTo(ChunkSpaceCoords AOther)
         {
             if (this.FLevel != AOther.FLevel)
-                return this.FLevel - AOther.FLevel;
+                return (int)this.FLevel - (int)AOther.FLevel;
             if (this.FZ != AOther.FZ)
                 return this.FZ - AOther.FZ;
             if (this.FY != AOther.FY)
