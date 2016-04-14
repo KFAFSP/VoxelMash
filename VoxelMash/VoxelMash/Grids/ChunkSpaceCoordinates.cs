@@ -10,7 +10,7 @@ namespace VoxelMash.Grids
         IComparable<ChunkSpaceCoords>,
         IFormattable
     {
-        private static Regex _FCanonicRegex = new Regex(@"^\((?<Level>[0-8]), (?<X>[0-9]+)\|(?<Y>[0-9]+)\|(?<Z>[0-9]+)\)$");
+        private static readonly Regex _FCanonicRegex = new Regex(@"^\((?<Level>[0-8]), (?<X>[0-9]+)\|(?<Y>[0-9]+)\|(?<Z>[0-9]+)\)$");
 
         #region Unchecked coordinate math functions
         private static ChunkSpaceCoords Unchecked_Add(
