@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace VoxelMash.Grids
@@ -126,6 +125,25 @@ namespace VoxelMash.Grids
             return aChildren
                 .Concat(aChildren
                     .SelectMany(AChild => ChunkSpaceCoords.EnumerateChildren(AChild, AToLevel)));
+        }
+
+        public static IEnumerable<byte> GetRootPath(
+            ChunkSpaceCoords ACoords)
+        {
+            if (ACoords.FLevel == ChunkSpaceLevel.Level0)
+                yield break;
+
+            unchecked
+            {
+                byte bMask = (byte)(1 << (byte)ACoords.FLevel);
+                for (int iLevel = (byte)ACoords.FLevel - 1; iLevel >= 0; iLevel--)
+                {
+                    yield return (byte)(((ACoords.FX & bMask) >> iLevel)
+                                        | (((ACoords.FY & bMask) >> iLevel) << 1)
+                                        | (((ACoords.FZ & bMask) >> iLevel) << 2));
+                    bMask = (byte)(bMask >> 1);
+                }
+            }
         }
         #endregion
 
@@ -349,6 +367,11 @@ namespace VoxelMash.Grids
         {
             return ChunkSpaceCoords.EnumerateChildren(this, AToLevel);
         }
+        [Pure]
+        public IEnumerable<byte> GetRootPath()
+        {
+            return ChunkSpaceCoords.GetRootPath(this);
+        }
         #endregion
 
         public ChunkSpaceLevel Level
@@ -374,6 +397,10 @@ namespace VoxelMash.Grids
         public IEnumerable<ChunkSpaceCoords> Children
         {
             get { return this.GetChildren(); }
+        }
+        public IEnumerable<byte> RootPath
+        {
+            get { return this.GetRootPath(); }
         }
 
         public byte X
