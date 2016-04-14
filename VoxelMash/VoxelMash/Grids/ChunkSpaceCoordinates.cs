@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace VoxelMash.Grids
 {
-    struct ChunkSpaceCoords :
+    public struct ChunkSpaceCoords :
         IEquatable<ChunkSpaceCoords>,
         IComparable<ChunkSpaceCoords>,
         IFormattable
@@ -20,9 +20,9 @@ namespace VoxelMash.Grids
 
                 return new ChunkSpaceCoords(
                     (ChunkSpaceLevel)Math.Max((byte)ALeft.FLevel, (byte)ARight.Level),
-                    (byte)(ALeft.FX << bDiff | ARight.FX),
-                    (byte)(ALeft.FY << bDiff | ARight.FY),
-                    (byte)(ALeft.FZ << bDiff | ARight.FZ));
+                    (byte)(ALeft.FX << bDiff + ARight.FX),
+                    (byte)(ALeft.FY << bDiff + ARight.FY),
+                    (byte)(ALeft.FZ << bDiff + ARight.FZ));
             }
         }
         private static ChunkSpaceCoords Unchecked_StepUp(
