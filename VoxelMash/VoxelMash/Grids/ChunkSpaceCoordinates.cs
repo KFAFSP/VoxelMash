@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace VoxelMash.Grids
@@ -109,6 +110,22 @@ namespace VoxelMash.Grids
                        && AChild.FY >> bDiff == AParent.FY
                        && AChild.FZ >> bDiff == AParent.FZ;
             }
+        }
+
+        public static IEnumerable<ChunkSpaceCoords> EnumerateChildren(
+            ChunkSpaceCoords ACoords,
+            ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Level8)
+        {
+            if (ACoords.FLevel >= ChunkSpaceLevel.Level8)
+                return Enumerable.Empty<ChunkSpaceCoords>();
+
+            ChunkSpaceCoords[] aChildren = Enumerable.Range(0, 8)
+                .Select(APath => ACoords.StepDown((byte)APath))
+                .ToArray();
+
+            return aChildren
+                .Concat(aChildren
+                    .SelectMany(AChild => ChunkSpaceCoords.EnumerateChildren(AChild, AToLevel)));
         }
         #endregion
 
@@ -325,6 +342,13 @@ namespace VoxelMash.Grids
         {
             return ChunkSpaceCoords.IsParent(AParent, this);
         }
+
+        [Pure]
+        public IEnumerable<ChunkSpaceCoords> GetChildren(
+            ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Voxel)
+        {
+            return ChunkSpaceCoords.EnumerateChildren(this, AToLevel);
+        }
         #endregion
 
         public ChunkSpaceLevel Level
@@ -346,6 +370,10 @@ namespace VoxelMash.Grids
         public ChunkSpaceCoords Parent
         {
             get { return this.StepUp(); }
+        }
+        public IEnumerable<ChunkSpaceCoords> Children
+        {
+            get { return this.GetChildren(); }
         }
 
         public byte X
