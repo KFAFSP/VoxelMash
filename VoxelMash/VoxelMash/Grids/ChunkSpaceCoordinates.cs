@@ -14,6 +14,11 @@ namespace VoxelMash.Grids
     {
         private static readonly Regex _FCanonicRegex = new Regex(@"^\((?<Level>[0-8]), (?<X>[0-9]+)\|(?<Y>[0-9]+)\|(?<Z>[0-9]+)\)$");
 
+        public static ChunkSpaceCoords Root
+        {
+            get { return new ChunkSpaceCoords(ChunkSpaceLevel.Chunk, 0, 0, 0); }
+        }
+
         #region Unchecked coordinate math functions
         private static void Unchecked_Increment(
             ref ChunkSpaceCoords ALeft,
