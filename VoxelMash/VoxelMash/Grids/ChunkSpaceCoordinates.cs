@@ -151,30 +151,35 @@ namespace VoxelMash.Grids
         {
             unchecked
             {
-                if (ACoords.FLevel == ChunkSpaceLevel.Level8)
-                {
-                    byte[] aBytes = BitConverter.GetBytes(ACoords.AsInt32);
-                    if (BitConverter.IsLittleEndian)
-                        Array.Reverse(aBytes);
+                int iLength = ACoords.ByteSize;
 
-                    return aBytes;
+                switch (iLength)
+                {
+                    case 2:
+                        return new[]
+                        {
+                            (byte)(((byte)ACoords.FLevel << 4) | ACoords.FZ),
+                            (byte)((ACoords.FY << 4) | ACoords.FX)
+                        };
+
+                    case 3:
+                        return new[]
+                        {
+                            (byte)(((byte)ACoords.FLevel << 5) | (ACoords.FZ >> 2)),
+                            (byte)(((ACoords.FZ & 0x03) << 6) | (ACoords.FY >> 1)),
+                            (byte)(((ACoords.FY & 0x01) << 7) | ACoords.FX)
+                        };
+
+                    case 4:
+                        byte[] aBytes = BitConverter.GetBytes(ACoords.AsInt32);
+                        if (BitConverter.IsLittleEndian)
+                            Array.Reverse(aBytes);
+
+                        return aBytes;
+
+                    default:
+                        return null;
                 }
-
-                if (ACoords.FLevel > ChunkSpaceLevel.Level4)
-                {
-                    return new []
-                    {
-                        (byte)(((byte)ACoords.FLevel << 5) | (ACoords.FZ >> 2)),
-                        (byte)(((ACoords.FZ & 0x03) << 6) | (ACoords.FY >> 1)),
-                        (byte)(((ACoords.FY & 0x01) << 7) | ACoords.FX)
-                    };
-                }
-
-                return new []
-                {
-                    (byte)(((byte)ACoords.FLevel << 4) | ACoords.FZ),
-                    (byte)((ACoords.FY << 4) | ACoords.FX)
-                };
             }
         }
         public static string ToCanonic(ChunkSpaceCoords ACoords)
@@ -406,6 +411,17 @@ namespace VoxelMash.Grids
                        | this.FY << 8
                        | this.FZ << 16
                        | (byte)this.FLevel << 24;
+            }
+        }
+        public int ByteSize
+        {
+            get
+            {
+                if (this.FLevel == ChunkSpaceLevel.Level8)
+                    return 4;
+                if (this.FLevel > ChunkSpaceLevel.Level4)
+                    return 3;
+                return 2;
             }
         }
 
