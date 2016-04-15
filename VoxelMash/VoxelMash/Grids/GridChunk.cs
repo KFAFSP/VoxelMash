@@ -14,54 +14,7 @@ namespace VoxelMash.Grids
             this.FTerminals = new SortedDictionary<ChunkSpaceCoords, ushort>();
         }
 
-        public ushort Get(ChunkSpaceCoords ACoords)
-        {
-            if (this.FTerminals.Count == 0)
-                return GridChunk.C_EmptyMaterial;
-
-            do
-            {
-                ushort nValue;
-
-                if (this.FTerminals.TryGetValue(ACoords, out nValue))
-                    return nValue;
-
-                if (ACoords.Level == ChunkSpaceLevel.Chunk)
-                    return GridChunk.C_EmptyMaterial;
-
-                ACoords.StepUp();
-            } while (true);
-        }
-
-        public int Set(ChunkSpaceCoords ACoords, ushort AValue)
-        {
-            int iBalance = 0;
-            if (ACoords.Level != ChunkSpaceLevel.Voxel)
-            {
-                ChunkSpaceCoords cscLast = ACoords.LastChild;
-                this.FTerminals.Keys
-                    .SkipWhile(AKey => AKey <= ACoords)
-                    .TakeWhile(AKey => AKey <= cscLast)
-                    .ForEach(AKey =>
-                    {
-                        if (this.FTerminals[AKey] == AValue)
-                            // ReSharper disable once AccessToModifiedClosure
-                            iBalance -= AKey.Volume;
-                    });
-            }
-
-            this.StrictExpandHere(ACoords);
-            
-            this.FTerminals[ACoords] = AValue;
-            iBalance += ACoords.Volume;
-            
-            ACoords.StepUp();
-            this.StrictCollapseThis(ACoords, AValue);
-
-            return iBalance;
-        }
-
-        public void StrictExpandHere(ChunkSpaceCoords ANode)
+        protected void StrictExpandHere(ChunkSpaceCoords ANode)
         {
             if (ANode.Level == ChunkSpaceLevel.Chunk)
                 return;
@@ -69,20 +22,23 @@ namespace VoxelMash.Grids
             byte[] aPath = ANode.GetRootPath().ToArray();
             ChunkSpaceCoords cscCurrent = ChunkSpaceCoords.Root;
 
-            for (int I = 0; I < aPath.Length - 1; I++)
+            int I = 0;
+            do
             {
                 ushort nValue;
                 if (this.FTerminals.TryGetValue(cscCurrent, out nValue))
                 {
                     this.FTerminals.Remove(cscCurrent);
                     for (byte bPath = 0; bPath < 8; bPath++)
-                        if (bPath != aPath[I + 1])
+                        if (bPath != aPath[I])
                             this.FTerminals[cscCurrent.GetChild(bPath)] = nValue;
                 }
-            }
-        }
 
-        public bool StrictCollapseThis(
+                cscCurrent.StepDown(aPath[I]);
+                I++;
+            } while (I < aPath.Length);
+        }
+        protected bool StrictCollapseThis(
             ChunkSpaceCoords ANode,
             ushort AValue)
         {
@@ -121,6 +77,62 @@ namespace VoxelMash.Grids
             ANode.StepUp();
             this.StrictCollapseThis(ANode, AValue);
             return true;
+        }
+
+        public ushort Get(ChunkSpaceCoords ACoords)
+        {
+            if (this.FTerminals.Count == 0)
+                return GridChunk.C_EmptyMaterial;
+
+            do
+            {
+                ushort nValue;
+
+                if (this.FTerminals.TryGetValue(ACoords, out nValue))
+                    return nValue;
+
+                if (ACoords.Level == ChunkSpaceLevel.Chunk)
+                    return GridChunk.C_EmptyMaterial;
+
+                ACoords.StepUp();
+            } while (true);
+        }
+        public int Set(ChunkSpaceCoords ACoords, ushort AValue)
+        {
+            int iBalance = 0;
+            if (ACoords.Level != ChunkSpaceLevel.Voxel)
+            {
+                ChunkSpaceCoords cscLast = ACoords.LastChild;
+                this.FTerminals.Keys
+                    .SkipWhile(AKey => AKey <= ACoords)
+                    .TakeWhile(AKey => AKey <= cscLast)
+                    .ForEach(AKey =>
+                    {
+                        if (this.FTerminals[AKey] == AValue)
+                            // ReSharper disable once AccessToModifiedClosure
+                            iBalance -= AKey.Volume;
+                    });
+            }
+
+            this.StrictExpandHere(ACoords);
+            
+            this.FTerminals[ACoords] = AValue;
+            iBalance += ACoords.Volume;
+            
+            ACoords.StepUp();
+            this.StrictCollapseThis(ACoords, AValue);
+
+            return iBalance;
+        }
+
+        public void Clear()
+        {
+            this.FTerminals.Clear();
+        }
+
+        public int TerminalCount
+        {
+            get { return this.FTerminals.Count; }
         }
     }
 }
