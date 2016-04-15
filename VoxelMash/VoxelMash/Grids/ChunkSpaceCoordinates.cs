@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -178,7 +179,7 @@ namespace VoxelMash.Grids
         }
         public static string ToCanonic(ChunkSpaceCoords ACoords)
         {
-            return ACoords.ToString("C");
+            return ACoords.ToString("C", CultureInfo.InvariantCulture);
         }
 
         public static ChunkSpaceCoords FromBytes(byte[] ABytes)
