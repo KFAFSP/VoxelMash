@@ -35,55 +35,23 @@ namespace VoxelMash.Grids
         public static void FromBytes(
             byte[] ABytes,
             out ChunkSpaceCoords ACoords,
-            out ushort AMaterial)
+            out ushort AMaterial,
+            int AOffset = 0)
         {
             if (ABytes == null)
                 throw new ArgumentNullException("ABytes");
 
-            byte[] aCoords, aMaterial;
+            ACoords = ChunkSpaceCoords.FromBytes(ABytes, AOffset);
+            int iLength = ACoords.ByteSize;
 
-            switch (ABytes.Length)
+            if (!BitConverter.IsLittleEndian)
             {
-                case 3:
-                    aCoords = ABytes
-                        .Take(2)
-                        .ToArray();
-                    aMaterial = ABytes
-                        .Skip(2)
-                        .Take(2)
-                        .ToArray();
-                    break;
-
-                case 4:
-                    aCoords = ABytes
-                        .Take(3)
-                        .ToArray();
-                    aMaterial = ABytes
-                        .Skip(3)
-                        .Take(2)
-                        .ToArray();
-                    break;
-
-                case 5:
-                    aCoords = ABytes
-                        .Take(4)
-                        .ToArray();
-                    aMaterial = ABytes
-                        .Skip(4)
-                        .Take(2)
-                        .ToArray();
-                    break;
-
-                default:
-                    throw new FormatException("Invalid terminal byte format.");
+                byte[] aMaterial = new byte[] { ABytes[AOffset + iLength + 1], ABytes[AOffset + iLength] };
+                AMaterial = BitConverter.ToUInt16(aMaterial, 0);
+                return;
             }
 
-            ACoords = ChunkSpaceCoords.FromBytes(aCoords);
-            
-            if (!BitConverter.IsLittleEndian)
-                Array.Reverse(aMaterial);
-
-            AMaterial = BitConverter.ToUInt16(aMaterial, 0);
+            AMaterial = BitConverter.ToUInt16(ABytes, AOffset + iLength);
         }
         public static void FromCanonic(
             string ACanonic,
