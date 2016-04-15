@@ -176,6 +176,10 @@ namespace VoxelMash.Grids
                 };
             }
         }
+        public static string ToCanonic(ChunkSpaceCoords ACoords)
+        {
+            return ACoords.ToString("C");
+        }
 
         public static ChunkSpaceCoords FromBytes(byte[] ABytes)
         {
@@ -267,7 +271,7 @@ namespace VoxelMash.Grids
         }
         public override string ToString()
         {
-            return this.ToString(null, null);
+            return this.ToString(null);
         }
         #endregion
 
@@ -299,12 +303,13 @@ namespace VoxelMash.Grids
 
         #region IFormattable
         [Pure]
-        public string ToString(string AFormat, IFormatProvider AFormatProvider)
+        public string ToString(string AFormat, IFormatProvider AFormatProvider = null)
         {
             AFormat = AFormat != null ? AFormat.ToUpperInvariant() : "G";
 
             switch (AFormat)
             {
+                case "C":
                 case "G":
                     return String.Format(AFormatProvider, "({0}, {1}|{2}|{3})", (byte)this.FLevel, this.FX, this.FY, this.FZ);
 
