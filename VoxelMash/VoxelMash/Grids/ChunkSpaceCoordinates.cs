@@ -182,14 +182,29 @@ namespace VoxelMash.Grids
             return ACoords.ToString("C", CultureInfo.InvariantCulture);
         }
 
-        public static ChunkSpaceCoords FromBytes(byte[] ABytes)
+        private static int GetLengthType(byte AFirst)
+        {
+            if (AFirst == 0x08)
+                return 4;
+
+            if (AFirst >> 7 == 1)
+                return 3;
+
+            return 2;
+        }
+
+        public static ChunkSpaceCoords FromBytes(
+            byte[] ABytes,
+            int AOffset = 0)
         {
             if (ABytes == null)
                 throw new ArgumentNullException("ABytes");
 
             unchecked
             {
-                switch (ABytes.Length)
+                int iLength = ChunkSpaceCoords.GetLengthType(ABytes[0]);
+
+                switch (iLength)
                 {
                     case 2:
                         return new ChunkSpaceCoords(
