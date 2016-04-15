@@ -16,7 +16,7 @@ namespace VoxelMashTest
         [TestMethod]
         public void StrictAccess()
         {
-            GridChunk gcChunk = new GridChunk();
+            GridChunk gcChunk = new StrictGridChunk();
 
             Assert.AreEqual(1, gcChunk.Set(TestHelpers.ChunkCoords(8, 1, 1, 1), 10));
             Assert.AreEqual(1, gcChunk.TerminalCount);
