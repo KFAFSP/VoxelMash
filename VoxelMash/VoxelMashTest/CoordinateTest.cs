@@ -142,7 +142,7 @@ namespace VoxelMashTest
                 ChunkSpaceCoords cscCoords = new ChunkSpaceCoords(ChunkSpaceLevel.Chunk, 0, 0, 0);
 
                 for (int J = 0; J < 8; J++)
-                    cscCoords.StepDown((byte)rRandom.Next(0, 7));
+                    cscCoords = cscCoords.StepDown((byte)rRandom.Next(0, 7));
 
                 Assert.IsTrue(cscCoords.Level == ChunkSpaceLevel.Voxel);
             }
