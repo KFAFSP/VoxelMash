@@ -417,21 +417,23 @@ namespace VoxelMash.Grids
         }
 
         [Pure]
-        public ChunkSpaceCoords GetFirstChild()
+        public ChunkSpaceCoords GetFirstChild(
+            ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Voxel)
         {
             ChunkSpaceCoords cscChild = this;
             // ReSharper disable once LoopVariableIsNeverChangedInsideLoop
-            while (cscChild.FLevel != ChunkSpaceLevel.Voxel)
+            while (cscChild.FLevel < AToLevel)
                 cscChild.StepDown(0x00);
 
             return cscChild;
         }
         [Pure]
-        public ChunkSpaceCoords GetLastChild()
+        public ChunkSpaceCoords GetLastChild(
+            ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Voxel)
         {
             ChunkSpaceCoords cscChild = this;
             // ReSharper disable once LoopVariableIsNeverChangedInsideLoop
-            while (cscChild.FLevel != ChunkSpaceLevel.Voxel)
+            while (cscChild.FLevel < AToLevel)
                 cscChild.StepDown(0x07);
 
             return cscChild;
