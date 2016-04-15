@@ -22,18 +22,17 @@ namespace VoxelMash.Grids
             if (this.FTerminals.Count == 0)
                 return GridChunk.C_EmptyMaterial;
 
-            ChunkSpaceCoords cscCheck = ACoords;
             do
             {
                 ushort nValue;
 
-                if (this.FTerminals.TryGetValue(cscCheck, out nValue))
+                if (this.FTerminals.TryGetValue(ACoords, out nValue))
                     return nValue;
 
                 if (ACoords.Level == ChunkSpaceLevel.Chunk)
                     return GridChunk.C_EmptyMaterial;
 
-                ACoords = ACoords.StepUp();
+                ACoords.StepUp();
             } while (true);
         }
 
@@ -45,7 +44,7 @@ namespace VoxelMash.Grids
 
             for (byte bPath = 0; bPath < 8; bPath++)
             {
-                ChunkSpaceCoords cscChild = ANode.StepDown(bPath);
+                ChunkSpaceCoords cscChild = ANode.GetChild(bPath);
                 ushort nChild;
                 if (!this.FTerminals.TryGetValue(cscChild, out nChild))
                 {
