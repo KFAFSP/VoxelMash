@@ -50,7 +50,7 @@ namespace VoxelMash.Grids
         {
             unchecked
             {
-                ACoords.FLevel = (ChunkSpaceLevel)Math.Min((byte)ACoords.Level + 1, 8);
+                ACoords.FLevel = (ChunkSpaceLevel)Math.Min((byte)ACoords.FLevel + 1, 8);
                 ACoords.FX = (byte)((ACoords.FX << 1) | APath & 0x01);
                 ACoords.FY = (byte)((ACoords.FY << 1) | ((APath & 0x02) >> 1));
                 ACoords.FZ = (byte)((ACoords.FZ << 1) | ((APath & 0x04) >> 2));
@@ -63,7 +63,7 @@ namespace VoxelMash.Grids
             ref ChunkSpaceCoords ALeft,
             ChunkSpaceCoords ARight)
         {
-            if (ALeft.Level < ARight.Level)
+            if (ALeft.FLevel < ARight.FLevel)
             {
                 ChunkSpaceCoords cscSwap = ALeft;
                 ALeft = ARight;
@@ -76,13 +76,13 @@ namespace VoxelMash.Grids
             ref ChunkSpaceCoords ACoords,
             byte ASteps = 1)
         {
-            ChunkSpaceCoords.Unchecked_StepUp(ref ACoords, Math.Min((byte)ACoords.Level, ASteps));
+            ChunkSpaceCoords.Unchecked_StepUp(ref ACoords, Math.Min((byte)ACoords.FLevel, ASteps));
         }
         public static void StepDown(
             ref ChunkSpaceCoords ACoords,
             byte APath = 0x00)
         {
-            if (ACoords.Level == ChunkSpaceLevel.Voxel)
+            if (ACoords.FLevel == ChunkSpaceLevel.Voxel)
                 return;
 
             ChunkSpaceCoords.Unchecked_StepDown(ref ACoords, APath);
