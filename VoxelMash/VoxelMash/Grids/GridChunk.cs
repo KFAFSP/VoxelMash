@@ -36,23 +36,5 @@ namespace VoxelMash.Grids
                 ACoords = ACoords.StepUp();
             } while (true);
         }
-        public int Set(
-            ChunkSpaceCoords ACoords,
-            ushort AValue)
-        {
-            ChunkSpaceCoords cscCheck = ACoords;
-            do
-            {
-                ushort nValue;
-
-                if (this.FTerminals.TryGetValue(cscCheck, out nValue))
-                {
-                    if (nValue == AValue)
-                        return 0;
-
-
-                }
-            } while (b);
-        }
     }
 }
