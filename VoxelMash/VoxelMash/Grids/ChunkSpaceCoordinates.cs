@@ -391,6 +391,18 @@ namespace VoxelMash.Grids
         {
             return ChunkSpaceCoords.EnumerateChildren(this, AToLevel);
         }
+
+        [Pure]
+        public ChunkSpaceCoords GetFirstChild()
+        {
+            return this.GetChildren().First();
+        }
+        [Pure]
+        public ChunkSpaceCoords GetLastChild()
+        {
+            return this.GetChildren().Last();
+        }
+        
         [Pure]
         public IEnumerable<byte> GetRootPath()
         {
@@ -429,10 +441,20 @@ namespace VoxelMash.Grids
         {
             get { return this.StepUp(); }
         }
+        
         public IEnumerable<ChunkSpaceCoords> Children
         {
             get { return this.GetChildren(); }
         }
+        public ChunkSpaceCoords FirstChild
+        {
+            get { return this.GetFirstChild(); }
+        }
+        public ChunkSpaceCoords LastChild
+        {
+            get { return this.GetLastChild(); }
+        }
+
         public IEnumerable<byte> RootPath
         {
             get { return this.GetRootPath(); }
