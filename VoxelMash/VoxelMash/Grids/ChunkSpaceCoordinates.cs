@@ -491,6 +491,15 @@ namespace VoxelMash.Grids
             get { return this.GetLastChild(); }
         }
 
+        public byte Path
+        {
+            get
+            {
+                return (byte)(this.FX & 0x1
+                              | (((this.FY >> 1) & 0x1) << 1)
+                              | (((this.FZ >> 1) & 0x1) << 2));
+            }
+        }
         public IEnumerable<byte> RootPath
         {
             get { return this.GetRootPath(); }
