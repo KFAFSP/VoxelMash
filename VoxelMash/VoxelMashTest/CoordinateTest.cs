@@ -148,5 +148,19 @@ namespace VoxelMashTest
                 Assert.IsTrue(cscCoords.Level == ChunkSpaceLevel.Voxel);
             }
         }
+
+        [TestMethod]
+        public void LeafFinding()
+        {
+            // (x, 0|0|0) descends into first child (8, 0|0|0)
+            Assert.AreEqual(
+                TestHelpers.ChunkCoords(8, 0, 0, 0),
+                TestHelpers.ChunkCoords(4, 0, 0, 0).FirstChild);
+
+            // (6, 12|1|9) descends into last child (8, 51|7|39)
+            Assert.AreEqual(
+                TestHelpers.ChunkCoords(8, 51, 7, 39),
+                TestHelpers.ChunkCoords(6, 12, 1, 9).LastChild);
+        }
     }
 }
