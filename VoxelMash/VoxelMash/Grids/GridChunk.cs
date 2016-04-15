@@ -36,10 +36,34 @@ namespace VoxelMash.Grids
             } while (true);
         }
 
+        public void StrictExpandHere(ChunkSpaceCoords ANode)
+        {
+            if (ANode.Level == ChunkSpaceLevel.Chunk)
+                return;
+
+            byte[] aPath = ANode.GetRootPath().ToArray();
+            ChunkSpaceCoords cscCurrent = ChunkSpaceCoords.Root;
+
+            for (int I = 0; I < aPath.Length - 1; I++)
+            {
+                ushort nValue;
+                if (this.FTerminals.TryGetValue(cscCurrent, out nValue))
+                {
+                    this.FTerminals.Remove(cscCurrent);
+                    for (byte bPath = 0; bPath < 8; bPath++)
+                        if (bPath != aPath[I + 1])
+                            this.FTerminals[cscCurrent.GetChild(bPath)] = nValue;
+                }
+            }
+        }
+
         public bool StrictCollapseThis(
             ChunkSpaceCoords ANode,
             ushort AValue)
         {
+            if (ANode.Level == ChunkSpaceLevel.Voxel)
+                return false;
+
             List<ChunkSpaceCoords> lRemove = new List<ChunkSpaceCoords>();
 
             for (byte bPath = 0; bPath < 8; bPath++)
@@ -69,6 +93,8 @@ namespace VoxelMash.Grids
 
             lRemove.ForEach(AKey => this.FTerminals.Remove(AKey));
             this.FTerminals[ANode] = AValue;
+            ANode.StepUp();
+            this.StrictCollapseThis(ANode, AValue);
             return true;
         }
     }
