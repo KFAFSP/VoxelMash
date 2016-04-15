@@ -477,6 +477,10 @@ namespace VoxelMash.Grids
                 return 2;
             }
         }
+        public int Volume
+        {
+            get { return 1 << ((8 - (byte)this.FLevel) * 3); }
+        }
 
         public ChunkSpaceCoords Parent
         {
