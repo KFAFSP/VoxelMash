@@ -420,6 +420,7 @@ namespace VoxelMash.Grids
         public ChunkSpaceCoords GetFirstChild()
         {
             ChunkSpaceCoords cscChild = this;
+            // ReSharper disable once LoopVariableIsNeverChangedInsideLoop
             while (cscChild.FLevel != ChunkSpaceLevel.Voxel)
                 cscChild.StepDown(0x00);
 
@@ -429,6 +430,7 @@ namespace VoxelMash.Grids
         public ChunkSpaceCoords GetLastChild()
         {
             ChunkSpaceCoords cscChild = this;
+            // ReSharper disable once LoopVariableIsNeverChangedInsideLoop
             while (cscChild.FLevel != ChunkSpaceLevel.Voxel)
                 cscChild.StepDown(0x07);
 
