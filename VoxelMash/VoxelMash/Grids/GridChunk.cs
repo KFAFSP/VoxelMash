@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace VoxelMash.Grids
 {
@@ -34,6 +31,34 @@ namespace VoxelMash.Grids
 
                 ACoords.StepUp();
             } while (true);
+        }
+
+        public int Set(ChunkSpaceCoords ACoords, ushort AValue)
+        {
+            int iBalance = 0;
+            if (ACoords.Level != ChunkSpaceLevel.Voxel)
+            {
+                ChunkSpaceCoords cscLast = ACoords.LastChild;
+                this.FTerminals.Keys
+                    .SkipWhile(AKey => AKey <= ACoords)
+                    .TakeWhile(AKey => AKey <= cscLast)
+                    .ForEach(AKey =>
+                    {
+                        if (this.FTerminals[AKey] == AValue)
+                            // ReSharper disable once AccessToModifiedClosure
+                            iBalance -= AKey.Volume;
+                    });
+            }
+
+            this.StrictExpandHere(ACoords);
+            
+            this.FTerminals[ACoords] = AValue;
+            iBalance += ACoords.Volume;
+            
+            ACoords.StepUp();
+            this.StrictCollapseThis(ACoords, AValue);
+
+            return iBalance;
         }
 
         public void StrictExpandHere(ChunkSpaceCoords ANode)
