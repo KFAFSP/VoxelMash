@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -129,6 +130,22 @@ namespace VoxelMashTest
             TestHelpers.BytesAssert(
                 new byte[] { 0x00, 0x07, 0x02, 0x05 },
                 TestHelpers.ChunkCoords(4, 5, 6, 5).RootPath.ToArray());
+        }
+
+        [TestMethod]
+        public void StepDownPerformance()
+        {
+            Random rRandom = new Random();
+
+            for (int I = 0; I < 1000000; I++)
+            {
+                ChunkSpaceCoords cscCoords = new ChunkSpaceCoords(ChunkSpaceLevel.Chunk, 0, 0, 0);
+
+                for (int J = 0; J < 8; J++)
+                    cscCoords.StepDown((byte)rRandom.Next(0, 7));
+
+                Assert.IsTrue(cscCoords.Level == ChunkSpaceLevel.Voxel);
+            }
         }
     }
 }
