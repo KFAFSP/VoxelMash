@@ -43,6 +43,7 @@
     <Compile Include="Grids\ChunkSpaceLevel.cs" />
     <Compile Include="Grids\ChunkSpaceCoordinates.cs" />
     <Compile Include="Grids\GridChunk.cs" />
+    <Compile Include="Grids\GridChunkTerminal.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Serialization\StreamReadingExtensions.cs" />
     <Compile Include="Serialization\StreamWritingExtensions.cs" />
