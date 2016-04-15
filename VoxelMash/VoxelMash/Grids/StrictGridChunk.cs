@@ -5,7 +5,9 @@ namespace VoxelMash.Grids
 {
     public class StrictGridChunk : GridChunk
     {
-        protected void StrictExpandHere(ChunkSpaceCoords ANode)
+        protected override void ExpandToHere(
+            ChunkSpaceCoords ANode,
+            ushort AValue)
         {
             if (ANode.Level == ChunkSpaceLevel.Chunk)
                 return;
@@ -29,7 +31,7 @@ namespace VoxelMash.Grids
                 I++;
             } while (I < aPath.Length);
         }
-        protected bool StrictCollapseThis(
+        protected override bool CollapseThis(
             ChunkSpaceCoords ANode,
             ushort AValue)
         {
@@ -66,54 +68,8 @@ namespace VoxelMash.Grids
             lRemove.ForEach(AKey => this.FTerminals.Remove(AKey));
             this.FTerminals[ANode] = AValue;
             ANode.StepUp();
-            this.StrictCollapseThis(ANode, AValue);
+            this.CollapseThis(ANode, AValue);
             return true;
-        }
-
-        public override ushort Get(ChunkSpaceCoords ACoords)
-        {
-            if (this.FTerminals.Count == 0)
-                return GridChunk.C_EmptyMaterial;
-
-            do
-            {
-                ushort nValue;
-
-                if (this.FTerminals.TryGetValue(ACoords, out nValue))
-                    return nValue;
-
-                if (ACoords.Level == ChunkSpaceLevel.Chunk)
-                    return GridChunk.C_EmptyMaterial;
-
-                ACoords.StepUp();
-            } while (true);
-        }
-        public override int Set(ChunkSpaceCoords ACoords, ushort AValue)
-        {
-            int iBalance = 0;
-            if (ACoords.Level != ChunkSpaceLevel.Voxel)
-            {
-                ChunkSpaceCoords cscLast = ACoords.LastChild;
-                this.FTerminals.Keys
-                    .SkipWhile(AKey => AKey <= ACoords)
-                    .TakeWhile(AKey => AKey <= cscLast)
-                    .ForEach(AKey =>
-                    {
-                        if (this.FTerminals[AKey] == AValue)
-                            // ReSharper disable once AccessToModifiedClosure
-                            iBalance -= AKey.Volume;
-                    });
-            }
-
-            this.StrictExpandHere(ACoords);
-            
-            this.FTerminals[ACoords] = AValue;
-            iBalance += ACoords.Volume;
-            
-            ACoords.StepUp();
-            this.StrictCollapseThis(ACoords, AValue);
-
-            return iBalance;
         }
     }
 }

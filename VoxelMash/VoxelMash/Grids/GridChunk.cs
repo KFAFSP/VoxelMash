@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace VoxelMash.Grids
 {
@@ -13,8 +14,58 @@ namespace VoxelMash.Grids
             this.FTerminals = new SortedDictionary<ChunkSpaceCoords, ushort>();
         }
 
-        public abstract ushort Get(ChunkSpaceCoords ACoords);
-        public abstract int Set(ChunkSpaceCoords ACoords, ushort AValue);
+        protected abstract void ExpandToHere(
+            ChunkSpaceCoords ACoords,
+            ushort AValue);
+        protected abstract bool CollapseThis(
+            ChunkSpaceCoords ACoords,
+            ushort AValue);
+
+        public virtual ushort Get(ChunkSpaceCoords ACoords)
+        {
+            if (this.FTerminals.Count == 0)
+                return GridChunk.C_EmptyMaterial;
+
+            do
+            {
+                ushort nValue;
+
+                if (this.FTerminals.TryGetValue(ACoords, out nValue))
+                    return nValue;
+
+                if (ACoords.Level == ChunkSpaceLevel.Chunk)
+                    return GridChunk.C_EmptyMaterial;
+
+                ACoords.StepUp();
+            } while (true);
+        }
+        public virtual int Set(ChunkSpaceCoords ACoords, ushort AValue)
+        {
+            int iBalance = 0;
+            if (ACoords.Level != ChunkSpaceLevel.Voxel)
+            {
+                ChunkSpaceCoords cscLast = ACoords.LastChild;
+                this.FTerminals
+                    .SkipWhile(APair => APair.Key <= ACoords)
+                    .TakeWhile(APair => APair.Key <= cscLast)
+                    .ForEach(APair =>
+                    {
+                        if (APair.Value == AValue)
+                            // ReSharper disable once AccessToModifiedClosure
+                            iBalance -= APair.Key.Volume;
+                    });
+            }
+
+            this.ExpandToHere(ACoords, AValue);
+
+            this.FTerminals[ACoords] = AValue;
+            iBalance += ACoords.Volume;
+
+            ACoords.StepUp();
+            this.CollapseThis(ACoords, AValue);
+
+            return iBalance;
+        }
 
         public void Clear()
         {
