@@ -15,82 +15,87 @@ namespace VoxelMash.Grids
         private static readonly Regex _FCanonicRegex = new Regex(@"^\((?<Level>[0-8]), (?<X>[0-9]+)\|(?<Y>[0-9]+)\|(?<Z>[0-9]+)\)$");
 
         #region Unchecked coordinate math functions
-        private static ChunkSpaceCoords Unchecked_Add(
-            ChunkSpaceCoords ALeft,
+        private static void Unchecked_Increment(
+            ref ChunkSpaceCoords ALeft,
             ChunkSpaceCoords ARight)
         {
             unchecked
             {
                 byte bDiff = (byte)((byte)ALeft.FLevel - (byte)ARight.FLevel);
 
-                return new ChunkSpaceCoords(
-                    (ChunkSpaceLevel)Math.Max((byte)ALeft.FLevel, (byte)ARight.Level),
-                    (byte)((ARight.FX << bDiff) + ALeft.FX),
-                    (byte)((ARight.FY << bDiff) + ALeft.FY),
-                    (byte)((ARight.FZ << bDiff) + ALeft.FZ));
+                ALeft.FLevel = (ChunkSpaceLevel)Math.Max((byte)ALeft.FLevel, (byte)ARight.FLevel);
+                ALeft.FX += (byte)(ARight.FX << bDiff);
+                ALeft.FY += (byte)(ARight.FY << bDiff);
+                ALeft.FZ += (byte)(ARight.FZ << bDiff);
             }
         }
-        private static ChunkSpaceCoords Unchecked_StepUp(
-            ChunkSpaceCoords ACoords,
+        private static void Unchecked_StepUp(
+            ref ChunkSpaceCoords ACoords,
             byte ASteps)
         {
             if (ASteps == 0)
-                return ACoords;
+                return;
 
             unchecked
             {
-                return new ChunkSpaceCoords(
-                    (ChunkSpaceLevel)Math.Max(0, (byte)ACoords.Level - ASteps),
-                    (byte)(ACoords.FX >> ASteps),
-                    (byte)(ACoords.FY >> ASteps),
-                    (byte)(ACoords.FZ >> ASteps));
+                ACoords.FLevel = (ChunkSpaceLevel)Math.Max(0, (byte)ACoords.FLevel - ASteps);
+                ACoords.FX >>= ASteps;
+                ACoords.FY >>= ASteps;
+                ACoords.FZ >>= ASteps;
             }
         }
-        private static ChunkSpaceCoords Unchecked_StepDown(
-            ChunkSpaceCoords ACoords,
+        private static void Unchecked_StepDown(
+            ref ChunkSpaceCoords ACoords,
             byte APath)
         {
             unchecked
             {
-                return new ChunkSpaceCoords(
-                    (ChunkSpaceLevel)((byte)ACoords.Level + 1),
-                    (byte)((ACoords.FX << 1) | APath & 0x01),
-                    (byte)((ACoords.FY << 1) | ((APath & 0x02) >> 1)),
-                    (byte)((ACoords.FZ << 1) | ((APath & 0x04) >> 2)));
+                ACoords.FLevel = (ChunkSpaceLevel)Math.Min((byte)ACoords.FLevel + 1, 8);
+                ACoords.FX = (byte)((ACoords.FX << 1) | APath & 0x01);
+                ACoords.FY = (byte)((ACoords.FY << 1) | ((APath & 0x02) >> 1));
+                ACoords.FZ = (byte)((ACoords.FZ << 1) | ((APath & 0x04) >> 2));
             }
         }
         #endregion
 
         #region Coordinate math functions
-        public static ChunkSpaceCoords Add(
-            ChunkSpaceCoords ALeft, ChunkSpaceCoords ARight)
+        public static void Increment(
+            ref ChunkSpaceCoords ALeft,
+            ChunkSpaceCoords ARight)
         {
-            return ALeft.Level < ARight.Level
-                ? ChunkSpaceCoords.Unchecked_Add(ARight, ALeft)
-                : ChunkSpaceCoords.Unchecked_Add(ALeft, ARight);
+            if (ALeft.FLevel < ARight.FLevel)
+            {
+                ChunkSpaceCoords cscSwap = ALeft;
+                ALeft = ARight;
+                ARight = cscSwap;
+            }
+            
+            ChunkSpaceCoords.Unchecked_Increment(ref ALeft, ARight);
         }
-        public static ChunkSpaceCoords StepUp(
-            ChunkSpaceCoords ACoords,
+        public static void StepUp(
+            ref ChunkSpaceCoords ACoords,
             byte ASteps = 1)
         {
-            return ChunkSpaceCoords.Unchecked_StepUp(ACoords, Math.Min((byte)ACoords.Level, ASteps));
+            ChunkSpaceCoords.Unchecked_StepUp(ref ACoords, Math.Min((byte)ACoords.FLevel, ASteps));
         }
-        public static ChunkSpaceCoords StepDown(
-            ChunkSpaceCoords ACoords,
+        public static void StepDown(
+            ref ChunkSpaceCoords ACoords,
             byte APath = 0x00)
         {
-            return ACoords.Level == ChunkSpaceLevel.Voxel
-                ? ACoords
-                : ChunkSpaceCoords.Unchecked_StepDown(ACoords, APath);
+            if (ACoords.FLevel == ChunkSpaceLevel.Voxel)
+                return;
+
+            ChunkSpaceCoords.Unchecked_StepDown(ref ACoords, APath);
         }
-        public static ChunkSpaceCoords StepDown(
-            ChunkSpaceCoords ACoords,
+        public static void StepDown(
+            ref ChunkSpaceCoords ACoords,
             IEnumerable<byte> APaths)
         {
             if (APaths == null)
                 throw new ArgumentNullException("APaths");
 
-            return APaths.Aggregate(ACoords, ChunkSpaceCoords.StepDown);
+            foreach (byte bPath in APaths)
+                ChunkSpaceCoords.StepDown(ref ACoords, bPath);
         }
         #endregion
 
@@ -120,7 +125,7 @@ namespace VoxelMash.Grids
                 return Enumerable.Empty<ChunkSpaceCoords>();
 
             ChunkSpaceCoords[] aChildren = Enumerable.Range(0, 8)
-                .Select(APath => ACoords.StepDown((byte)APath))
+                .Select(APath => ACoords.GetChild((byte)APath))
                 .ToArray();
 
             return aChildren
@@ -260,11 +265,11 @@ namespace VoxelMash.Grids
         }
         #endregion
 
-        private readonly ChunkSpaceLevel FLevel;
+        private ChunkSpaceLevel FLevel;
 
-        private readonly byte FX;
-        private readonly byte FY;
-        private readonly byte FZ;
+        private byte FX;
+        private byte FY;
+        private byte FZ;
 
         public ChunkSpaceCoords(
             ChunkSpaceLevel ALevel,
@@ -351,29 +356,27 @@ namespace VoxelMash.Grids
         }
         #endregion
 
-        #region Operator shortcuts
-        [Pure]
-        public ChunkSpaceCoords Add(ChunkSpaceCoords AOther)
+        #region Impure operator shortcuts
+        public void Add(ChunkSpaceCoords AOther)
         {
-            return ChunkSpaceCoords.Add(this, AOther);
+            ChunkSpaceCoords.Increment(ref this, AOther);
         }
 
-        [Pure]
-        public ChunkSpaceCoords StepUp(byte ASteps = 1)
+        public void StepUp(byte ASteps = 1)
         {
-            return ChunkSpaceCoords.StepUp(this, ASteps);
+            ChunkSpaceCoords.StepUp(ref this, ASteps);
         }
-        [Pure]
-        public ChunkSpaceCoords StepDown(byte APath = 0x00)
+        public void StepDown(byte APath = 0x00)
         {
-            return ChunkSpaceCoords.StepDown(this, APath);
+            ChunkSpaceCoords.StepDown(ref this, APath);
         }
-        [Pure]
-        public ChunkSpaceCoords StepDown(IEnumerable<byte> APath)
+        public void StepDown(IEnumerable<byte> APath)
         {
-            return ChunkSpaceCoords.StepDown(this, APath);
+            ChunkSpaceCoords.StepDown(ref this, APath);
         }
+        #endregion
 
+        #region Pure operator shortcuts
         [Pure]
         public bool IsParentOf(ChunkSpaceCoords AChild)
         {
@@ -386,6 +389,27 @@ namespace VoxelMash.Grids
         }
 
         [Pure]
+        public ChunkSpaceCoords GetParent()
+        {
+            ChunkSpaceCoords cscResult = this;
+            cscResult.StepUp();
+            return cscResult;
+        }
+        [Pure]
+        public ChunkSpaceCoords GetChild(byte APath = 0x00)
+        {
+            ChunkSpaceCoords cscResult = this;
+            cscResult.StepDown(APath);
+            return cscResult;
+        }
+        [Pure]
+        public ChunkSpaceCoords GetChild(byte[] APaths)
+        {
+            ChunkSpaceCoords cscResult = this;
+            cscResult.StepDown(APaths);
+            return cscResult;
+        }
+        [Pure]
         public IEnumerable<ChunkSpaceCoords> GetChildren(
             ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Voxel)
         {
@@ -395,12 +419,20 @@ namespace VoxelMash.Grids
         [Pure]
         public ChunkSpaceCoords GetFirstChild()
         {
-            return this.GetChildren().First();
+            ChunkSpaceCoords cscChild = this;
+            while (cscChild.FLevel != ChunkSpaceLevel.Voxel)
+                cscChild.StepDown(0x00);
+
+            return cscChild;
         }
         [Pure]
         public ChunkSpaceCoords GetLastChild()
         {
-            return this.GetChildren().Last();
+            ChunkSpaceCoords cscChild = this;
+            while (cscChild.FLevel != ChunkSpaceLevel.Voxel)
+                cscChild.StepDown(0x07);
+
+            return cscChild;
         }
         
         [Pure]
@@ -439,7 +471,7 @@ namespace VoxelMash.Grids
 
         public ChunkSpaceCoords Parent
         {
-            get { return this.StepUp(); }
+            get { return this.GetParent(); }
         }
         
         public IEnumerable<ChunkSpaceCoords> Children
@@ -478,13 +510,17 @@ namespace VoxelMash.Grids
             ChunkSpaceCoords ALeft,
             ChunkSpaceCoords ARight)
         {
-            return ChunkSpaceCoords.Add(ALeft, ARight);
+            ChunkSpaceCoords cscResult = ALeft;
+            cscResult.Add(ARight);
+            return cscResult;
         }
         public static ChunkSpaceCoords operator +(
             ChunkSpaceCoords ALeft,
             byte ARight)
         {
-            return ChunkSpaceCoords.StepDown(ALeft, ARight);
+            ChunkSpaceCoords cscResult = ALeft;
+            cscResult.StepDown(ARight);
+            return cscResult;
         }
 
         public static bool operator ==(

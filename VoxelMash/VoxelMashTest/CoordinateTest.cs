@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -39,12 +40,12 @@ namespace VoxelMashTest
             // (7, 1|1|1) down 1|1|1 = (7, 1|1|1) + (8, 1|1|1)
             Assert.AreEqual(
                 TestHelpers.ChunkCoords(7, 1, 1, 1) + TestHelpers.ChunkCoords(8, 1, 1, 1),
-                TestHelpers.ChunkCoords(7, 1, 1, 1).StepDown(0x07));
+                TestHelpers.ChunkCoords(7, 1, 1, 1).GetChild(0x07));
 
             // (0, 0|0|0) down 0|0|0 down 1|1|1 down 0|1|0 down 1|0|1 = (4, 5, 6, 5)
             Assert.AreEqual(
                 TestHelpers.ChunkCoords(4, 5, 6, 5),
-                TestHelpers.ChunkCoords((byte)0, 0, 0, 0).StepDown(new byte[] { 0x00, 0x07, 0x02, 0x05 }));
+                TestHelpers.ChunkCoords((byte)0, 0, 0, 0).GetChild(new byte[] { 0x00, 0x07, 0x02, 0x05 }));
         }
 
         [TestMethod]
@@ -53,12 +54,12 @@ namespace VoxelMashTest
             // (4, 5|6|5) up = (3, 2|3|2)
             Assert.AreEqual(
                 TestHelpers.ChunkCoords(3, 2, 3, 2),
-                TestHelpers.ChunkCoords(4, 5, 6, 5).StepUp());
+                TestHelpers.ChunkCoords(4, 5, 6, 5).GetParent());
 
             // (0, 0|0|0) up = (0, 0|0|0)
             Assert.AreEqual(
                 TestHelpers.ChunkCoords((byte)0, 0, 0, 0),
-                TestHelpers.ChunkCoords((byte)0, 0, 0, 0).StepUp());
+                TestHelpers.ChunkCoords((byte)0, 0, 0, 0).GetParent());
         }
 
         [TestMethod]
@@ -142,7 +143,7 @@ namespace VoxelMashTest
                 ChunkSpaceCoords cscCoords = new ChunkSpaceCoords(ChunkSpaceLevel.Chunk, 0, 0, 0);
 
                 for (int J = 0; J < 8; J++)
-                    cscCoords = cscCoords.StepDown((byte)rRandom.Next(0, 7));
+                    cscCoords.StepDown((byte)rRandom.Next(0, 7));
 
                 Assert.IsTrue(cscCoords.Level == ChunkSpaceLevel.Voxel);
             }
