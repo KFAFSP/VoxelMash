@@ -30,5 +30,27 @@ namespace VoxelMash
             foreach (T oItem in AEnumerable)
                 AAction(oItem);
         }
+
+        /// <summary>
+        /// Shuffles the specified list.
+        /// </summary>
+        /// <typeparam name="T">The item type.</typeparam>
+        /// <param name="AList">The list.</param>
+        /// <param name="ARandom">The random number generator.</param>
+        /// <remarks>
+        /// Source: http://stackoverflow.com/a/1262619
+        /// </remarks>
+        public static void Shuffle<T>(this IList<T> AList, Random ARandom)
+        {
+            int I = AList.Count;
+            while (I > 1)
+            {
+                I--;
+                int iRandom = ARandom.Next(I + 1);
+                T oSwap = AList[iRandom];
+                AList[iRandom] = AList[I];
+                AList[I] = oSwap;
+            }
+        }
     }
 }

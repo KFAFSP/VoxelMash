@@ -5,6 +5,7 @@ using System.Linq;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
+using VoxelMash;
 using VoxelMash.Grids;
 
 namespace VoxelMashTest
@@ -12,6 +13,21 @@ namespace VoxelMashTest
     [TestClass]
     public class ChunkTest
     {
+        private static readonly List<ChunkSpaceCoords> _FRandomBlocks = new List<ChunkSpaceCoords>(4096);
+
+        [TestInitialize]
+        public void Randomize()
+        {
+            Random rRandom = new Random();
+
+            for (byte Z = 0; Z < 16; Z++)
+                for (byte Y = 0; Y < 16; Y++)
+                    for (byte X = 0; X < 16; X++)
+                        ChunkTest._FRandomBlocks.Add(new ChunkSpaceCoords(ChunkSpaceLevel.Block, X, Y, Z));
+
+            ChunkTest._FRandomBlocks.Shuffle(rRandom);
+        }
+
         [TestMethod]
         public void StrictAccess()
         {
@@ -65,33 +81,19 @@ namespace VoxelMashTest
         [TestMethod]
         public void StrictBlockPerformance()
         {
-            Random rRandom = new Random();
-
-            List<ChunkSpaceCoords> lAll = ChunkSpaceCoords.Root.Children
-                .Where(AChild => AChild.Level == ChunkSpaceLevel.Block)
-                .OrderBy(AChild => rRandom.Next())
-                .ToList();
-
             GridChunk gcChunk = new StrictGridChunk();
 
-            lAll.ForEach(ABlock => gcChunk.Set(ABlock, 1));
+            ChunkTest._FRandomBlocks.ForEach(ABlock => gcChunk.Set(ABlock, 1));
             Assert.AreEqual(1, gcChunk.TerminalCount);
         }
 
         [TestMethod]
         public void OverrideBlockPerformance()
         {
-            Random rRandom = new Random();
-
-            List<ChunkSpaceCoords> lAll = ChunkSpaceCoords.Root.Children
-                .Where(AChild => AChild.Level == ChunkSpaceLevel.Block)
-                .OrderBy(AChild => rRandom.Next())
-                .ToList();
-
             GridChunk gcChunk = new OverrideGridChunk();
 
-            lAll.ForEach(ABlock => gcChunk.Set(ABlock, 1));
-            Assert.AreEqual(1, gcChunk.TerminalCount);
+            ChunkTest._FRandomBlocks.Take(100).ForEach(ABlock => gcChunk.Set(ABlock, 1));
+            Assert.AreEqual(100, gcChunk.TerminalCount);
         }
     }
 }
