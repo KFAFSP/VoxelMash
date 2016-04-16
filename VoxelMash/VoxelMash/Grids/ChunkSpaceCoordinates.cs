@@ -126,16 +126,25 @@ namespace VoxelMash.Grids
             ChunkSpaceCoords ACoords,
             ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Level8)
         {
-            if (ACoords.FLevel >= ChunkSpaceLevel.Level8)
-                return Enumerable.Empty<ChunkSpaceCoords>();
+            if (ACoords.FLevel >= AToLevel)
+                yield break;
 
-            ChunkSpaceCoords[] aChildren = Enumerable.Range(0, 8)
-                .Select(APath => ACoords.GetChild((byte)APath))
-                .ToArray();
+            Queue<ChunkSpaceCoords> qStepDown = new Queue<ChunkSpaceCoords>((byte)AToLevel);
+            qStepDown.Enqueue(ACoords);
 
-            return aChildren
-                .Concat(aChildren
-                    .SelectMany(AChild => ChunkSpaceCoords.EnumerateChildren(AChild, AToLevel)));
+            while (qStepDown.Count > 0)
+            {
+                ChunkSpaceCoords cscCurrent = qStepDown.Dequeue();
+                for (byte bPath = 0; bPath < 8; bPath++)
+                {
+                    ChunkSpaceCoords cscChild = cscCurrent;
+                    cscChild.StepDown(bPath);
+                    yield return cscChild;
+
+                    if (cscChild.FLevel < AToLevel)
+                        qStepDown.Enqueue(cscChild);
+                }
+            }
         }
 
         public static IEnumerable<byte> GetRootPath(
