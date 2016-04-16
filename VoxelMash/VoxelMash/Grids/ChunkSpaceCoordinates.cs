@@ -157,13 +157,23 @@ namespace VoxelMash.Grids
             if (this.Equals(AOther))
                 return 0;
 
-            if (this.FShift > AOther.Shift && this.IsParentOf(AOther))
-                return -1;
-            if (this.FShift < AOther.Shift && AOther.IsParentOf(this))
-                return 1;
-
             ChunkSpaceCoordinates cscThis = this;
-            ChunkSpaceCoordinates.AsSiblings(ref cscThis, ref AOther);
+
+            if (this.FShift > AOther.FShift)
+            {
+                if (this.IsParentOf(AOther))
+                    return -1;
+                
+                AOther.StepUp((byte)(this.FShift - AOther.FShift));
+            }
+            if (this.FShift < AOther.FShift)
+            {
+                if (AOther.IsParentOf(this))
+                    return 1;
+
+                cscThis.StepUp((byte)(AOther.FShift - cscThis.FShift));
+            }
+
             return cscThis.GetIndex() - AOther.GetIndex();
         }
         #endregion
