@@ -56,6 +56,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CoordinateConstraintsTest.cs" />
     <Compile Include="CoordinatePerformaceTest.cs" />
+    <Compile Include="SparseChunkConstraintTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VoxelMash\VoxelMash.csproj">

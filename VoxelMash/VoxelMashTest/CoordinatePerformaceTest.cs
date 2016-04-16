@@ -34,11 +34,11 @@ namespace VoxelMashTest
         [TestMethod]
         public void Constructor()
         {
-            // ReSharper disable once NotAccessedVariable
-            Coords cTest;
             for (int I = 0; I < CoordinatePerformaceTest.C_Complexity; I++)
-                // ReSharper disable once RedundantAssignment
-                cTest = new Coords(0, 1, 2, 3);
+            {
+                Coords cTest = new Coords(0, 1, 2, 3);
+                Assert.AreEqual(1, cTest.Volume);
+            }
         }
 
         [TestMethod]

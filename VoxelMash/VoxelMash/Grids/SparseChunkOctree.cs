@@ -16,20 +16,23 @@ namespace VoxelMash.Grids
 
         protected void Expand(Coords ACoords)
         {
+            byte bIgnore = ACoords.GetPath();
             while (ACoords.StepUp())
             {
-                byte bIgnore = ACoords.GetPath();
                 ushort nGet;
                 if (this.FTerminals.TryGetValue(ACoords, out nGet))
                 {
+                    
                     this.FTerminals.Remove(ACoords);
 
                     for (byte bPath = 0; bPath < 8; bPath++)
                         if (bPath != bIgnore)
-                            this.FTerminals[ACoords.GetSibling(bPath)] = nGet;
+                            this.FTerminals[ACoords.GetChild(bPath)] = nGet;
                 }
                 else
                     return;
+
+                bIgnore = ACoords.GetPath();
             }
         }
         protected void Terminate(Coords ACoords, ushort AValue, ref int ABalance)
@@ -55,7 +58,10 @@ namespace VoxelMash.Grids
         }
         protected bool Collapse(Coords ACoords, byte AIgnore, ushort AValue)
         {
-            List<Coords> lChildren = new List<Coords>(7);
+            List<Coords> lChildren = new List<Coords>(8);
+            if (AIgnore != ChunkOctree.C_EmptyMaterial)
+                lChildren.Add(ACoords.GetChild(AIgnore));
+
             for (byte bPath = 0; bPath < 8; bPath++)
                 if (bPath != AIgnore)
                 {
@@ -67,6 +73,8 @@ namespace VoxelMash.Grids
                         {
                             if (this.FTerminals.Keys.Any(cChild.IsParentOf))
                                 return false;
+
+                            nGet = ChunkOctree.C_EmptyMaterial;
                         }
                         else
                             return false;
@@ -75,10 +83,14 @@ namespace VoxelMash.Grids
                     if (nGet != AValue)
                         return false;
 
-                    lChildren.Add(cChild);
+                    if (nGet != ChunkOctree.C_EmptyMaterial)
+                        lChildren.Add(cChild);
                 }
 
             lChildren.ForEach(AKey => this.FTerminals.Remove(AKey));
+            if (AValue != ChunkOctree.C_EmptyMaterial)
+                this.FTerminals[ACoords] = AValue;
+
             byte bIgnore = ACoords.GetPath();
             if (ACoords.StepUp())
                 this.Collapse(ACoords, bIgnore, AValue);
@@ -96,6 +108,12 @@ namespace VoxelMash.Grids
         }
         public override void Set(Coords ACoords, ushort AValue, ref int ABalance)
         {
+            Coords cDefined = ACoords;
+            ushort nCurrent;
+            this.Get(ref cDefined, out nCurrent);
+            if (nCurrent == AValue)
+                return;
+
             this.Expand(ACoords);
             this.Terminate(ACoords, AValue, ref ABalance);
 
@@ -107,6 +125,11 @@ namespace VoxelMash.Grids
         public override void Clear()
         {
             this.FTerminals.Clear();
+        }
+
+        public bool IsLeaf(Coords ACoords)
+        {
+            return this.FTerminals.ContainsKey(ACoords);
         }
 
         public int TerminalCount
