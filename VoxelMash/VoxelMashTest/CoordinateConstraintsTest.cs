@@ -98,5 +98,30 @@ namespace VoxelMashTest
             Assert.IsTrue(
                 new Coords(4, 12, 1, 0).IsParentOf(new Coords(0, 200, 24, 1)));
         }
+
+        [TestMethod]
+        public void GetOffset()
+        {
+            // Constraint 1 : (0, x|y|z) remains unchanged.
+            Trace.WriteLine("Constraint 1 : voxel constance.");
+            Assert.AreEqual(
+                new Coords(0, 10, 11, 12),
+                new Coords(0, 10, 11, 12).GetOffset());
+
+            // Constraint 2 : correctness.
+            Trace.WriteLine("Constraint 2 : correctness.");
+
+            // Example : trivial solution.
+            Trace.WriteLine("Example 1 : trivial solution.");
+            Assert.AreEqual(
+                new Coords(0, 0, 0, 0),
+                new Coords(8, 0, 0, 0).GetOffset());
+
+            // Example : (4, 7|9|11) has its first child at (0, 112|144|176)
+            Trace.WriteLine("Example 2 : multi step-down.");
+            Assert.AreEqual(
+                new Coords(0, 112, 144, 176),
+                new Coords(4, 7, 9, 11).GetOffset());
+        }
     }
 }
