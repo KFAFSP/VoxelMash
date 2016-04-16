@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -61,6 +60,38 @@ namespace VoxelMashTest
             for (byte bPath = 0; bPath < 4; bPath++)
                 Assert.AreEqual(1, gcChunk.Set(TestHelpers.ChunkCoords(7, 0, 0, 0).GetChild(bPath), 10));
             Assert.AreEqual(4, gcChunk.Set(TestHelpers.ChunkCoords(7, 0, 0, 0), 10));
+        }
+
+        [TestMethod]
+        public void StrictBlockPerformance()
+        {
+            Random rRandom = new Random();
+
+            List<ChunkSpaceCoords> lAll = ChunkSpaceCoords.Root.Children
+                .Where(AChild => AChild.Level == ChunkSpaceLevel.Block)
+                .OrderBy(AChild => rRandom.Next())
+                .ToList();
+
+            GridChunk gcChunk = new StrictGridChunk();
+
+            lAll.ForEach(ABlock => gcChunk.Set(ABlock, 1));
+            Assert.AreEqual(1, gcChunk.TerminalCount);
+        }
+
+        [TestMethod]
+        public void OverrideBlockPerformance()
+        {
+            Random rRandom = new Random();
+
+            List<ChunkSpaceCoords> lAll = ChunkSpaceCoords.Root.Children
+                .Where(AChild => AChild.Level == ChunkSpaceLevel.Block)
+                .OrderBy(AChild => rRandom.Next())
+                .ToList();
+
+            GridChunk gcChunk = new OverrideGridChunk();
+
+            lAll.ForEach(ABlock => gcChunk.Set(ABlock, 1));
+            Assert.AreEqual(1, gcChunk.TerminalCount);
         }
     }
 }
