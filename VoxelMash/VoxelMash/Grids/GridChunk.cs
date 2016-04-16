@@ -44,17 +44,24 @@ namespace VoxelMash.Grids
             int iBalance = 0;
             if (ACoords.Level != ChunkSpaceLevel.Voxel)
             {
-                ChunkSpaceCoords cscLast = ACoords.LastChild;
+                List<ChunkSpaceCoords> lRemove = new List<ChunkSpaceCoords>();
                 this.FTerminals
                     .SkipWhile(APair => APair.Key <= ACoords)
-                    .TakeWhile(APair => APair.Key <= cscLast)
+                    .TakeWhile(APair => APair.Key.IsChildOf(ACoords))
                     .ForEach(APair =>
                     {
                         if (APair.Value == AValue)
                             // ReSharper disable once AccessToModifiedClosure
                             iBalance -= APair.Key.Volume;
+
+                        lRemove.Add(APair.Key);
                     });
+
+                lRemove.ForEach(AKey => this.FTerminals.Remove(AKey));
             }
+
+            if (this.Get(ACoords) == AValue)
+                return 0;
 
             this.ExpandToHere(ACoords, AValue);
 

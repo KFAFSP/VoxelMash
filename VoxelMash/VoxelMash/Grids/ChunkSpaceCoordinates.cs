@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace VoxelMash.Grids
@@ -329,14 +330,37 @@ namespace VoxelMash.Grids
         [Pure]
         public int CompareTo(ChunkSpaceCoords AOther)
         {
-            if (this.FLevel != AOther.FLevel)
-                return (int)this.FLevel - (int)AOther.FLevel;
-            if (this.FZ != AOther.FZ)
-                return this.FZ - AOther.FZ;
-            if (this.FY != AOther.FY)
-                return this.FY - AOther.FY;
+            if (this == AOther)
+                return 0;
 
-            return this.FX - AOther.FX;
+            ChunkSpaceCoords cscThis = this;
+
+            while (AOther.FLevel > cscThis.FLevel)
+            {
+                if (ChunkSpaceCoords.IsParent(cscThis, AOther))
+                    return -1;
+
+                AOther.StepUp();
+            }
+            while (AOther.FLevel < cscThis.FLevel)
+            {
+                if (ChunkSpaceCoords.IsParent(AOther, cscThis))
+                    return 1;
+
+                cscThis.StepUp();
+            }
+            
+            while (cscThis.Parent != AOther.Parent)
+            {
+                cscThis.StepUp();
+                AOther.StepUp();
+            }
+
+            int iDiff = cscThis.FZ - AOther.FZ;
+            if (iDiff != 0) return iDiff;
+            iDiff = cscThis.FY - AOther.FY;
+            if (iDiff != 0) return iDiff;
+            return cscThis.FX - AOther.FX;
         }
         #endregion
 

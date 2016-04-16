@@ -79,7 +79,7 @@ namespace VoxelMashTest
         }
 
         [TestMethod]
-        public void StrictBlockPerformance()
+        public void StrictBlockRandomPerf()
         {
             GridChunk gcChunk = new StrictGridChunk();
 
@@ -88,12 +88,12 @@ namespace VoxelMashTest
         }
 
         [TestMethod]
-        public void OverrideBlockPerformance()
+        public void OverrideBlockRandomPerf()
         {
             GridChunk gcChunk = new OverrideGridChunk();
 
-            ChunkTest._FRandomBlocks.Take(100).ForEach(ABlock => gcChunk.Set(ABlock, 1));
-            Assert.AreEqual(100, gcChunk.TerminalCount);
+            ChunkTest._FRandomBlocks.ForEach(ABlock => gcChunk.Set(ABlock, 1));
+            Assert.AreEqual(1, gcChunk.TerminalCount);
         }
     }
 }

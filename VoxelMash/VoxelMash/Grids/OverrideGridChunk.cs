@@ -51,6 +51,26 @@ namespace VoxelMash.Grids
             }
             public void Set(ushort AKey, int AValue)
             {
+                if (AKey == this.FMaximumKey && AValue < this.FMaximumValue)
+                {
+                    this.FMaximumValue = AValue;
+
+                    this.FCounts[AKey] = AValue;
+                    this.FCounts.ForEach(APair =>
+                    {
+                        if (APair.Value > this.FMaximumValue)
+                        {
+                            this.FAbsoluteMaximum = true;
+                            this.FMaximumValue = APair.Value;
+                            this.FMaximumKey = APair.Key;
+                        }
+                        else if (APair.Value == this.FMaximumValue && APair.Key != this.FMaximumKey)
+                            this.FAbsoluteMaximum = false;
+                    });
+
+                    return;
+                }
+                
                 if (this.FMaximumValue < AValue)
                 {
                     this.FAbsoluteMaximum = true;
@@ -136,7 +156,10 @@ namespace VoxelMash.Grids
                 .ForEach(APair =>
                 {
                     if (APair.Value == ANewValue)
+                    {
+                        hsAdd.Remove(APair.Key);
                         lRemove.Add(APair.Key);
+                    }
 
                     if (hsAdd.RemoveWhere(ACandidate => ACandidate.IsParentOf(APair.Key)) == 1)
                         hsAdd.Add(APair.Key);
@@ -153,6 +176,7 @@ namespace VoxelMash.Grids
 
             ushort nOldValue = this.Get(ANode);
             CounterDict cdCount = new CounterDict();
+            cdCount.Increment(nOldValue, ANode.Volume);
             this.Count(nOldValue, ANode, cdCount);
 
             bool bCollapsed = false;
@@ -169,6 +193,10 @@ namespace VoxelMash.Grids
                     byte bSkip = ANode.Path;
                     ANode.StepUp();
                     ushort nExpect = this.Get(ANode);
+                    cdCount.Increment(nExpect, ANode.Volume);
+                    if (nOldValue != nExpect)
+                        cdCount.Increment(nExpect, -ANode.GetChild().Volume);
+                    nOldValue = nExpect;
 
                     for (byte bPath = 0; bPath < 8; bPath++)
                         if (bPath != bSkip)
@@ -181,6 +209,9 @@ namespace VoxelMash.Grids
                 else
                 {
                     ushort nNewValue = cdCount.Maximum.Key;
+                    if (nNewValue == nOldValue)
+                        return bCollapsed;
+
                     this.ReplaceChildren(ANode, nOldValue, nNewValue);
                     this.FTerminals[ANode] = nNewValue;
 
@@ -190,6 +221,10 @@ namespace VoxelMash.Grids
                     byte bSkip = ANode.Path;
                     ANode.StepUp();
                     ushort nExpect = this.Get(ANode);
+                    cdCount.Increment(nExpect, ANode.Volume);
+                    if (nOldValue != nExpect)
+                        cdCount.Increment(nExpect, -ANode.GetChild().Volume);
+                    nOldValue = nExpect;
 
                     for (byte bPath = 0; bPath < 8; bPath++)
                         if (bPath != bSkip)

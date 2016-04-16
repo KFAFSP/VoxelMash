@@ -93,8 +93,20 @@ namespace VoxelMashTest
         [TestMethod]
         public void Ordering()
         {
-            // (1, x|x|x) < (2, x|x|x)
+            // (1, 0|0|0) < (2, 0|0|0)
             Assert.IsTrue(TestHelpers.ChunkCoords(1, 0, 0, 0) < TestHelpers.ChunkCoords(2, 0, 0, 0));
+
+            // (1, 0|0|0) < (3, 0|0|0)
+            Assert.IsTrue(TestHelpers.ChunkCoords(1, 0, 0, 0) < TestHelpers.ChunkCoords(3, 0, 0, 0));
+
+            // (1, 0|0|0) < (3, 4|4|4)
+            Assert.IsTrue(TestHelpers.ChunkCoords(1, 0, 0, 0) < TestHelpers.ChunkCoords(3, 4, 4, 4));
+
+            // (1, 1|1|1) > (3, 0|0|0)
+            Assert.IsTrue(TestHelpers.ChunkCoords(1, 1, 1, 1) > TestHelpers.ChunkCoords(3, 0, 0, 0));
+
+            // (4, 1|1|1) > (4, 2|0|0)
+            Assert.IsTrue(TestHelpers.ChunkCoords(4, 1, 1, 1) < TestHelpers.ChunkCoords(4, 2, 0, 0));
 
             // (4, 0|1|0) < (4, 1|1|0)
             Assert.IsTrue(TestHelpers.ChunkCoords(4, 0, 1, 0) < TestHelpers.ChunkCoords(4, 1, 1, 0));

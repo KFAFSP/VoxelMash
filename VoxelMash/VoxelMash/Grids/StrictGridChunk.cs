@@ -48,10 +48,9 @@ namespace VoxelMash.Grids
                 {
                     if (AValue == GridChunk.C_EmptyMaterial)
                     {
-                        ChunkSpaceCoords cscLast = cscChild.LastChild;
                         if (this.FTerminals.Keys
                             .SkipWhile(AKey => AKey <= cscChild)
-                            .TakeWhile(AKey => AKey <= cscLast)
+                            .TakeWhile(ANode.IsParentOf)
                             .Any())
                             return false;
                     }
