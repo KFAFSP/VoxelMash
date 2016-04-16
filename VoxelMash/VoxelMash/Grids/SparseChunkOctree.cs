@@ -11,7 +11,7 @@ namespace VoxelMash.Grids
 
         public SparseChunkOctree()
         {
-            this.FTerminals = new SortedDictionary<Coords, ushort>();
+            this.FTerminals = new SortedDictionary<Coords, ushort>(Comparer<Coords>.Default);
         }
 
         protected void Expand(Coords ACoords)
@@ -59,7 +59,7 @@ namespace VoxelMash.Grids
         protected bool Collapse(Coords ACoords, byte AIgnore, ushort AValue)
         {
             List<Coords> lChildren = new List<Coords>(8);
-            if (AIgnore != ChunkOctree.C_EmptyMaterial)
+            if (AValue != ChunkOctree.C_EmptyMaterial)
                 lChildren.Add(ACoords.GetChild(AIgnore));
 
             for (byte bPath = 0; bPath < 8; bPath++)

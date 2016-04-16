@@ -264,9 +264,33 @@ namespace VoxelMashTest
                         new Coords(2, 6, 2, 0),
                     new Coords(3, 2, 1, 1),
                         new Coords(2, 4, 2, 3),
-                new Coords(4, 0, 0, 1),
+                new Coords(4, 0, 0, 1)
             };
             List<Coords> lTest = lSorted.ToList();
+            lTest.Shuffle(new Random());
+            lTest.Sort();
+            CoordinateConstraintsTest.AreSequencesEqual(
+                lSorted,
+                lTest);
+
+            // Constraint 5 : parent grouping.
+            Trace.WriteLine("Constraint 5 : parent grouping.");
+            lSorted = new List<Coords>
+            {
+                new Coords(0, 0, 0, 0),
+                new Coords(0, 1, 0, 0),
+                new Coords(0, 0, 1, 0),
+                new Coords(0, 1, 1, 0),
+
+                new Coords(0, 3, 0, 0),
+                new Coords(0, 0, 3, 0),
+                new Coords(0, 3, 2, 0),
+
+                new Coords(0, 4, 4, 0),
+                new Coords(0, 5, 4, 0),
+                new Coords(0, 4, 5, 0)
+            };
+            lTest = lSorted.ToList();
             lTest.Shuffle(new Random());
             lTest.Sort();
             CoordinateConstraintsTest.AreSequencesEqual(

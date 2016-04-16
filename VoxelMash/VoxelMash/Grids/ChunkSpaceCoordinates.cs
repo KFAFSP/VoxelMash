@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Runtime.InteropServices;
 
 namespace VoxelMash.Grids
 {
@@ -170,27 +171,25 @@ namespace VoxelMash.Grids
         #region IComparable<ChunkSpaceCoordinates>
         public int CompareTo(ChunkSpaceCoordinates AOther)
         {
-            if (this.Equals(AOther))
-                return 0;
+            IEnumerator<byte> ieThis = this.GetPath(false).GetEnumerator();
+            IEnumerator<byte> ieOther = AOther.GetPath(false).GetEnumerator();
 
-            ChunkSpaceCoordinates cscThis = this;
+            do
+            {
+                bool bThis = ieThis.MoveNext();
+                bool bOther = ieOther.MoveNext();
 
-            if (this.FShift > AOther.FShift)
-            {
-                if (this.IsParentOf(AOther))
-                    return -1;
-                
-                AOther.StepUp((byte)(this.FShift - AOther.FShift));
-            }
-            if (this.FShift < AOther.FShift)
-            {
-                if (AOther.IsParentOf(this))
+                if (bThis && !bOther)
                     return 1;
+                if (!bThis && bOther)
+                    return -1;
+                if (!bThis)
+                    return 0;
 
-                cscThis.StepUp((byte)(AOther.FShift - cscThis.FShift));
-            }
-
-            return cscThis.GetIndex() - AOther.GetIndex();
+                int iDiff = ieThis.Current - ieOther.Current;
+                if (iDiff != 0)
+                    return iDiff;
+            } while (true);
         }
         #endregion
 

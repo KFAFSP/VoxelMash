@@ -8,7 +8,7 @@ using Coords = VoxelMash.Grids.ChunkSpaceCoordinates;
 namespace VoxelMashTest
 {
     [TestClass]
-    public class SparseChunkConstraintTest
+    public class SparseChunkConstraintsTest
     {
         [TestMethod]
         public void SingleVoxel()
