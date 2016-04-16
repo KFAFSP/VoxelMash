@@ -10,17 +10,6 @@ namespace VoxelMash.Grids
     {
         public static ChunkSpaceCoordinates Root { get { return new ChunkSpaceCoordinates(8, 0, 0, 0); } }
 
-        public static void AsSiblings(
-            ref ChunkSpaceCoordinates ALeft,
-            ref ChunkSpaceCoordinates ARight)
-        {
-            int iDiff = ALeft.FShift - ARight.FShift;
-            if (iDiff > 0)
-                ARight.StepUp((byte)iDiff);
-            else if (iDiff < 0)
-                ALeft.StepUp((byte)-iDiff);
-        }
-
         private byte FShift;
         private byte FX;
         private byte FY;
