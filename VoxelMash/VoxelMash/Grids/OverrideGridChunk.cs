@@ -7,24 +7,25 @@ namespace VoxelMash.Grids
     {
         protected class CounterDict
         {
-            private bool FSoleMax;
-            private ushort FMaxKey;
-            private int FMaxValue;
+            private bool FAbsoluteMaximum;
+            private ushort FMaximumKey;
+            private int FMaximumValue;
 
             private readonly Dictionary<ushort, int> FCounts;
 
             public CounterDict()
             {
-                this.FSoleMax = true;
-                this.FMaxKey = 0;
-                this.FMaxValue = int.MinValue;
-
                 this.FCounts = new Dictionary<ushort, int>();
+                this.Reset();
             }
-            public CounterDict(ushort AKey, int AValue)
-                : this()
+
+            public void Reset()
             {
-                this.FCounts[AKey] = AValue;
+                this.FCounts.Clear();
+
+                this.FAbsoluteMaximum = false;
+                this.FMaximumKey = 0;
+                this.FMaximumValue = int.MinValue;
             }
 
             public void Increment(ushort AKey, int AAmount)
@@ -33,18 +34,7 @@ namespace VoxelMash.Grids
                 if (!this.FCounts.TryGetValue(AKey, out iCurrent))
                     iCurrent = 0;
 
-                iCurrent += AAmount;
-
-                if (this.FMaxValue < iCurrent)
-                {
-                    this.FSoleMax = true;
-                    this.FMaxValue = iCurrent;
-                    this.FMaxKey = AKey;
-                }
-                else if (this.FMaxValue == iCurrent)
-                    this.FSoleMax = false;
-
-                this.FCounts[AKey] = iCurrent;
+                this.Set(AKey, iCurrent + AAmount);
             }
             public void Increment(CounterDict ABy)
             {
@@ -61,14 +51,14 @@ namespace VoxelMash.Grids
             }
             public void Set(ushort AKey, int AValue)
             {
-                if (this.FMaxValue < AValue)
+                if (this.FMaximumValue < AValue)
                 {
-                    this.FSoleMax = true;
-                    this.FMaxValue = AValue;
-                    this.FMaxKey = AKey;
+                    this.FAbsoluteMaximum = true;
+                    this.FMaximumValue = AValue;
+                    this.FMaximumKey = AKey;
                 }
-                else if (this.FMaxValue == AValue)
-                    this.FSoleMax = false;
+                else if (this.FMaximumValue == AValue)
+                    this.FAbsoluteMaximum = false;
 
                 this.FCounts[AKey] = AValue;
             }
@@ -79,17 +69,13 @@ namespace VoxelMash.Grids
                 set { this.Set(AKey, value); }
             }
 
-            public bool SoleMax
+            public bool AbsoluteMaximum
             {
-                get { return this.FSoleMax; }
+                get { return this.FAbsoluteMaximum; }
             }
-            public ushort MaxKey
+            public KeyValuePair<ushort, int> Maximum
             {
-                get { return this.FMaxKey; }
-            }
-            public int MaxValue
-            {
-                get { return this.FMaxValue; }
+                get { return new KeyValuePair<ushort, int>(this.FMaximumKey, this.FMaximumValue); }
             }
 
             public IEnumerable<KeyValuePair<ushort, int>> NonZero
@@ -98,29 +84,124 @@ namespace VoxelMash.Grids
             }
         }
 
-        protected readonly Dictionary<ChunkSpaceCoords, CounterDict> FCounterCache;
-
-        public OverrideGridChunk()
+        protected void Count(
+            ushort AExpect,
+            ChunkSpaceCoords ACoords,
+            CounterDict AResult)
         {
-            this.FCounterCache = new Dictionary<ChunkSpaceCoords, CounterDict>();
-        }
-
-        protected virtual CounterDict GetCount(ChunkSpaceCoords ACoords)
-        {
-            CounterDict cdResult;
-            if (this.FCounterCache.TryGetValue(ACoords, out cdResult))
-                return cdResult;
-
-            cdResult = new CounterDict();
-            this.FCounterCache[ACoords] = cdResult;
-
             if (ACoords.Level == ChunkSpaceLevel.Voxel)
-                cdResult.Increment(this.Get(ACoords), 1);
-            else
-                for (byte bPath = 0; bPath < 8; bPath++)
-                    cdResult.Increment(this.GetCount(ACoords.GetChild(bPath)));
+                return;
 
-            return cdResult;
+            for (byte bPath = 0; bPath < 8; bPath++)
+            {
+                ChunkSpaceCoords cscChild = ACoords;
+                cscChild.StepDown(bPath);
+                int iVolume = cscChild.Volume;
+
+                ushort nValue;
+                if (!this.FTerminals.TryGetValue(cscChild, out nValue))
+                    nValue = AExpect;
+
+                if (nValue != AExpect)
+                {
+                    AResult.Increment(AExpect, -iVolume);
+                    AResult.Increment(nValue, iVolume);
+                }
+
+                this.Count(nValue, cscChild, AResult);
+            }
+        }
+        protected void ReplaceChildren(
+            ChunkSpaceCoords ACoords,
+            ushort AOldValue,
+            ushort ANewValue)
+        {
+            if (ACoords.Level == ChunkSpaceLevel.Voxel)
+                return;
+
+            HashSet<ChunkSpaceCoords> hsAdd = new HashSet<ChunkSpaceCoords>();
+            for (byte bPath = 0; bPath < 8; bPath++)
+            {
+                ChunkSpaceCoords cscChild = ACoords;
+                cscChild.StepDown(bPath);
+                hsAdd.Add(cscChild);
+            }
+
+            ChunkSpaceCoords cscLast = ACoords.LastChild;
+            List<ChunkSpaceCoords> lRemove = new List<ChunkSpaceCoords>();
+
+            this.FTerminals
+                .SkipWhile(APair => APair.Key <= ACoords)
+                .TakeWhile(APair => APair.Key <= cscLast)
+                .ForEach(APair =>
+                {
+                    if (APair.Value == ANewValue)
+                        lRemove.Add(APair.Key);
+
+                    if (hsAdd.RemoveWhere(ACandidate => ACandidate.IsParentOf(APair.Key)) == 1)
+                        hsAdd.Add(APair.Key);
+                });
+
+            lRemove.ForEach(AKey => this.FTerminals.Remove(AKey));
+            hsAdd.ForEach(AKey => this.FTerminals[AKey] = AOldValue);
+        }
+        protected bool SmartCollapse(
+            ChunkSpaceCoords ANode)
+        {
+            if (ANode.Level == ChunkSpaceLevel.Voxel)
+                return false;
+
+            ushort nOldValue = this.Get(ANode);
+            CounterDict cdCount = new CounterDict();
+            this.Count(nOldValue, ANode, cdCount);
+
+            bool bCollapsed = false;
+            do
+            {
+                if (!cdCount.AbsoluteMaximum)
+                {
+                    if (bCollapsed)
+                        return true;
+
+                    if (ANode.Level == ChunkSpaceLevel.Chunk)
+                        return false;
+
+                    byte bSkip = ANode.Path;
+                    ANode.StepUp();
+                    ushort nExpect = this.Get(ANode);
+
+                    for (byte bPath = 0; bPath < 8; bPath++)
+                        if (bPath != bSkip)
+                        {
+                            ChunkSpaceCoords cscChild = ANode;
+                            cscChild.StepDown(bSkip);
+                            this.Count(nExpect, cscChild, cdCount);
+                        }
+                }
+                else
+                {
+                    ushort nNewValue = cdCount.Maximum.Key;
+                    this.ReplaceChildren(ANode, nOldValue, nNewValue);
+                    this.FTerminals[ANode] = nNewValue;
+
+                    if (ANode.Level == ChunkSpaceLevel.Chunk)
+                        return true;
+
+                    byte bSkip = ANode.Path;
+                    ANode.StepUp();
+                    ushort nExpect = this.Get(ANode);
+
+                    for (byte bPath = 0; bPath < 8; bPath++)
+                        if (bPath != bSkip)
+                        {
+                            ChunkSpaceCoords cscChild = ANode;
+                            cscChild.StepDown(bSkip);
+                            this.Count(nExpect, cscChild, cdCount);
+                        }
+
+                    bCollapsed = true;
+                }
+            } while (true);
         }
 
         protected override void ExpandToHere(
@@ -131,55 +212,7 @@ namespace VoxelMash.Grids
             ChunkSpaceCoords ANode,
             ushort AValue)
         {
-            if (ANode.Level == ChunkSpaceLevel.Voxel)
-                return false;
-
-            CounterDict cdThis = this.GetCount(ANode);
-            if (cdThis.SoleMax)
-            {
-                ChunkSpaceCoords cscLast = ANode.LastChild;
-                List<ChunkSpaceCoords> lRemove = this.FTerminals
-                    .SkipWhile(APair => APair.Key <= ANode)
-                    .TakeWhile(APair => APair.Key <= cscLast)
-                    .Where(APair => APair.Value == cdThis.MaxKey)
-                    .Select(APair => APair.Key)
-                    .ToList();
-
-                if (lRemove.Count > 0)
-                {
-                    lRemove.ForEach(AKey => this.FTerminals.Remove(AKey));
-                    if (cdThis.MaxKey == 0)
-                        this.FTerminals.Remove(ANode);
-                    else
-                        this.FTerminals[ANode] = cdThis.MaxKey;
-
-                    if (ANode.Level == ChunkSpaceLevel.Chunk)
-                        return true;
-
-                    ANode.StepUp();
-                    this.CollapseThis(ANode, AValue);
-                    return true;
-                }
-
-                return false;
-            }
-
-            if (ANode.Level == ChunkSpaceLevel.Chunk)
-                return false;
-
-            ANode.StepUp();
-            return this.CollapseThis(ANode, AValue);
-        }
-
-        public override int Set(
-            ChunkSpaceCoords ACoords,
-            ushort AValue)
-        {
-            this.FCounterCache.Clear();
-            int iResult = base.Set(ACoords, AValue);
-            this.FCounterCache.Clear();
-
-            return iResult;
+            return this.SmartCollapse(ANode);
         }
     }
 }
