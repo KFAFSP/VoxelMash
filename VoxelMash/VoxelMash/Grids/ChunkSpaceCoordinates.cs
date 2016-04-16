@@ -86,11 +86,18 @@ namespace VoxelMash.Grids
                 (byte)(this.FZ << this.FShift));
         }
         [Pure]
-        public byte GetPath()
+        public byte GetPath(byte AShift = 0x0)
         {
-            return (byte)((this.FX & 0x1)
-                          | ((this.FY & 0x1) << 1)
-                          | ((this.FZ & 0x1) << 2));
+            return (byte)(((this.FX >> AShift) & 0x1)
+                          | (((this.FY >> AShift) & 0x1) << 1)
+                          | (((this.FZ >> AShift) & 0x1) << 2));
+        }
+        [Pure]
+        public IEnumerable<byte> GetPath(bool AUpward, byte AStopShift = 8)
+        {
+            int iLimit = Math.Max(AStopShift - this.FShift, 0);
+            for (byte bShift = 0; bShift < iLimit; bShift++)
+                yield return this.GetPath(AUpward ? bShift : (byte)(iLimit - bShift - 1));
         }
         [Pure]
         public int GetIndex()
@@ -150,6 +157,11 @@ namespace VoxelMash.Grids
             if (this.Equals(AOther))
                 return 0;
 
+            if (this.FShift > AOther.Shift && this.IsParentOf(AOther))
+                return -1;
+            if (this.FShift < AOther.Shift && AOther.IsParentOf(this))
+                return 1;
+
             ChunkSpaceCoordinates cscThis = this;
             ChunkSpaceCoordinates.AsSiblings(ref cscThis, ref AOther);
             return cscThis.GetIndex() - AOther.GetIndex();
@@ -181,5 +193,45 @@ namespace VoxelMash.Grids
         {
             get { return this.FZ; }
         }
+    
+        #region Operator overloads
+        public static bool operator ==(
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
+        {
+            return ALeft.Equals(ARight);
+        }
+        public static bool operator !=(
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
+        {
+            return !ALeft.Equals(ARight);
+        }
+
+        public static bool operator >(
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
+        {
+            return ALeft.CompareTo(ARight) > 0;
+        }
+        public static bool operator <(
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
+        {
+            return ALeft.CompareTo(ARight) < 0;
+        }
+        public static bool operator >=(
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
+        {
+            return ALeft.CompareTo(ARight) >= 0;
+        }
+        public static bool operator <=(
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
+        {
+            return ALeft.CompareTo(ARight) <= 0;
+        }
+        #endregion
     }
 }

@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
+using VoxelMash;
 using Coords = VoxelMash.Grids.ChunkSpaceCoordinates;
 
 namespace VoxelMashTest
@@ -10,6 +13,38 @@ namespace VoxelMashTest
     [TestClass]
     public class CoordinateConstraintsTest
     {
+        private static void AreSequencesEqual<T>(
+            IEnumerable<T> AExpect,
+            IEnumerable<T> AActual)
+        {
+            T[] aExpect = AExpect.ToArray();
+            T[] aActual = AActual != null ? AActual.ToArray() : null;
+
+            if (AActual == null || !aActual.SequenceEqual(aExpect))
+            {
+                string sActual = AActual != null
+                    ? String.Join(", ", aActual)
+                    : "null";
+
+                throw new AssertFailedException(String.Format("Expected: {0}, Actually: {1}",
+                    String.Join(", ", aExpect),
+                    sActual));
+            }
+        }
+
+        [TestMethod]
+        public void Constructor()
+        {
+            // Constraint 1 : shift must be in range.
+            Trace.WriteLine("Constraint 1 : shift must be in range.");
+            try
+            {
+                new Coords(120, 1, 42, 4).StepUp();
+                Assert.Fail("Failed to throw exception.");
+            }
+            catch (ArgumentException) { }
+        }
+
         [TestMethod]
         public void StepDown()
         {
@@ -122,6 +157,113 @@ namespace VoxelMashTest
             Assert.AreEqual(
                 new Coords(0, 112, 144, 176),
                 new Coords(4, 7, 9, 11).GetOffset());
+        }
+
+        [TestMethod]
+        public void GetPath()
+        {
+            // Constraint 1 : (8, 0|0|0) results in 0x0.
+            Trace.WriteLine("Constraint 1 : root path is zero.");
+            Assert.AreEqual(
+                0x0,
+                new Coords(8, 0, 0, 0).GetPath());
+
+            // Constraint 2 : correctness.
+            Trace.WriteLine("Constraint 2 : correctness.");
+
+            // Example : (4, 9|3|1) is parent of (3, 18|7|3) via (0, 1, 1)
+            Trace.WriteLine("Example 1 : single step path.");
+            Assert.AreEqual(
+                0x0 | 0x2 | 0x4,
+                new Coords(3, 18, 7, 3).GetPath());
+
+            // Example : (0, 200|24|1) is child of (4, 12|1|0) [4 levels down]
+            Trace.WriteLine("Example 2 : multi step path (downward).");
+            CoordinateConstraintsTest.AreSequencesEqual(
+                new byte[]{0x3, 0x0, 0x0, 0x4},
+                new Coords(0, 200, 24, 1).GetPath(false, 4));
+
+            // Example : (0, 200|24|1) is child of (4, 12|1|0) [4 levels down]
+            Trace.WriteLine("Example 3 : multi step path (upward).");
+            CoordinateConstraintsTest.AreSequencesEqual(
+                new byte[] { 0x3, 0x0, 0x0, 0x4 }.Reverse(),
+                new Coords(0, 200, 24, 1).GetPath(true, 4));
+        }
+
+        [TestMethod]
+        public void GetIndex()
+        {
+            // Constraint 1 : (0, 0|0|0) results in 0x00000000.
+            Trace.WriteLine("Contraint 1 : first voxel has smallest index.");
+            Assert.AreEqual(
+                0x00000000,
+                new Coords(0, 0, 0, 0).GetIndex());
+
+            // Constraint 2 : (8, 0|0|0) results in 0x08000000.
+            Trace.WriteLine("Contraint 2 : root has highest index.");
+            Assert.AreEqual(
+                0x08000000,
+                new Coords(8, 0, 0, 0).GetIndex());
+
+            // Constraint 3 : Siblings are sorted in the cartesian coordinate system l-r, b-t, f-b.
+            Trace.WriteLine("Contraint 3 : sibling cartesian sorting.");
+
+            // Example : index(4, 0|0|0) < index(4, 1|1|0)
+            Trace.WriteLine("Example 1");
+            Assert.IsTrue(new Coords(4, 0, 0, 0).GetIndex() < new Coords(4, 1, 1, 0).GetIndex());
+
+            // Example : index(4, 1|1|0) < index(4, 1|1|1)
+            Trace.WriteLine("Example 2");
+            Assert.IsTrue(new Coords(4, 1, 1, 0).GetIndex() < new Coords(4, 1, 1, 1).GetIndex());
+
+            // Constraint 4 : Smaller volumes have lower indices.
+            Trace.WriteLine("Constraint 4 : smaller volumes have lower indices.");
+            Assert.IsTrue(new Coords(1, 9, 3, 7).GetIndex() < new Coords(4, 3, 2, 6).GetIndex());
+        }
+
+        [TestMethod]
+        public void CompareTo()
+        {
+            // Constraint 1 : root comes before anything.
+            Trace.WriteLine("Constraint 1 : root is smallest element.");
+            Assert.IsTrue(new Coords(8, 0, 0, 0) < new Coords(4, 1, 7, 3));
+
+            // Constraint 2 : last voxel comes after anything.
+            Trace.WriteLine("Constraint 2 : last voxel is largest element.");
+            Assert.IsTrue(new Coords(0, 255, 255, 255) > new Coords(4, 1, 7, 3));
+
+            // Constraint 3 : parent comes before child.
+            Trace.WriteLine("Constraint 3 : parent before child.");
+
+            // Example : (4, 1|1|1) < (3, 2|2|2)
+            Trace.WriteLine("Example 1 : single step.");
+            Assert.IsTrue(new Coords(4, 1, 1, 1) < new Coords(3, 2, 2, 2));
+
+            // Example : (5, 0|0|0) < (3, 2|2|2)
+            Trace.WriteLine("Example 2 : multi step.");
+            Assert.IsTrue(new Coords(5, 0, 0, 0) < new Coords(3, 2, 2, 2));
+
+            // Constraint 4 : hierarchical sorting.
+            Trace.WriteLine("Constraint 4 : hierarchical sorting.");
+            List<Coords> lSorted = new List<Coords>
+            {
+                new Coords(4, 0, 0, 0),
+                new Coords(4, 0, 0, 0),
+                    new Coords(3, 0, 0, 0),
+                new Coords(4, 1, 0, 0),
+                    new Coords(3, 2, 0, 0),
+                    new Coords(3, 3, 1, 0),
+                        new Coords(2, 6, 2, 0),
+                    new Coords(3, 2, 1, 1),
+                        new Coords(2, 4, 2, 3),
+                new Coords(4, 0, 0, 1),
+            };
+            List<Coords> lTest = lSorted.ToList();
+            lTest.Shuffle(new Random());
+            lTest.Sort();
+            CoordinateConstraintsTest.AreSequencesEqual(
+                lSorted,
+                lTest);
         }
     }
 }
