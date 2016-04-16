@@ -40,16 +40,38 @@ namespace VoxelMash.Grids
             this.FY = (byte)((this.FY << 1) | ((APath & 0x2) >> 1));
             this.FZ = (byte)((this.FZ << 1) | ((APath & 0x4) >> 2));
         }
-        public void StepUp(byte AAmount = 0x1)
+        public bool StepUp(byte AAmount = 0x1)
         {
             AAmount = (byte)Math.Min(AAmount, 8 - this.FShift);
+            if (AAmount == 0)
+                return false;
 
             this.FShift += AAmount;
             this.FX >>= AAmount;
             this.FY >>= AAmount;
             this.FZ >>= AAmount;
+            return true;
         }
 
+        public void SetPath(byte APath)
+        {
+            if ((APath & 0x1) == 0x1)
+                this.FX |= 0x01;
+            else
+                this.FX &= 0xFE;
+            
+            if ((APath & 0x2) == 0x2)
+                this.FY |= 0x01;
+            else
+                this.FY &= 0xFE;
+
+            if ((APath & 0x4) == 0x4)
+                this.FZ |= 0x01;
+            else
+                this.FZ &= 0xFE;
+        }
+
+        #region Pure methods
         [Pure]
         public bool IsParentOf(ChunkSpaceCoordinates AOther)
         {
@@ -93,6 +115,13 @@ namespace VoxelMash.Grids
                    | (this.FZ << 16)
                    | (this.FShift << 24);
         }
+        [Pure]
+        public ChunkSpaceCoordinates GetSibling(byte APath)
+        {
+            ChunkSpaceCoordinates cscSibling = this;
+            cscSibling.SetPath(APath);
+            return cscSibling;
+        }
 
         [Pure]
         public ChunkSpaceCoordinates GetChild(byte APath)
@@ -108,6 +137,7 @@ namespace VoxelMash.Grids
             cscParent.StepUp(AOrder);
             return cscParent;
         }
+        #endregion
 
         #region System.Object overrides
         public override bool Equals(object AOther)
@@ -171,6 +201,10 @@ namespace VoxelMash.Grids
         public byte Level
         {
             get { return (byte)(8 - this.FShift); }
+        }
+        public int Volume
+        {
+            get { return 1 << (this.FShift * 3); }
         }
 
         public byte Shift

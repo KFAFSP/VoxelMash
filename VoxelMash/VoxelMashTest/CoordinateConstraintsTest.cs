@@ -100,6 +100,14 @@ namespace VoxelMashTest
             Assert.AreEqual(
                 new Coords(4, 12, 1, 0),
                 new Coords(0, 200, 24, 1).GetParent(4));
+
+            // Constraint 3 : step-up without changes yields false.
+            Trace.WriteLine("Constraint 3 : step-up without changes yields false.");
+            Assert.IsFalse(new Coords(8, 0, 0, 0).StepUp());
+
+            // Constraint 4 : step-up with changes yields true.
+            Trace.WriteLine("Constraint 4 : step-up with changes yields true.");
+            Assert.IsTrue(new Coords(4, 0, 0, 0).StepUp());
         }
 
         [TestMethod]
