@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Runtime.InteropServices;
 
 namespace VoxelMash.Grids
 {
@@ -10,6 +9,8 @@ namespace VoxelMash.Grids
         IComparable<ChunkSpaceCoordinates>
     {
         public static ChunkSpaceCoordinates Root { get { return new ChunkSpaceCoordinates(8, 0, 0, 0); } }
+        public static ChunkSpaceCoordinates LastVoxel { get { return new ChunkSpaceCoordinates(0, 255, 255, 255); } }
+        public static ChunkSpaceCoordinates OutOfRange { get { return ChunkSpaceCoordinates.LastVoxel.GetLastChildPlusOne(); } }
 
         private byte FShift;
         private byte FX;
@@ -132,6 +133,38 @@ namespace VoxelMash.Grids
             return cscChild;
         }
         [Pure]
+        public ChunkSpaceCoordinates GetLastChild()
+        {
+            byte bMask = (byte)(0xFF >> (8 - this.FShift));
+            return new ChunkSpaceCoordinates(
+                0,
+                (byte)(this.FX | bMask),
+                (byte)(this.FY | bMask),
+                (byte)(this.FZ | bMask));
+        }
+        [Pure]
+        public ChunkSpaceCoordinates GetLastChildPlusOne()
+        {
+            ChunkSpaceCoordinates cscResult = this;
+            do
+            {
+                byte bPath = cscResult.GetPath();
+                if (bPath < 0x7)
+                {
+                    if (cscResult.FShift == 8)
+                    {
+                        cscResult.FShift = 9;
+                        return cscResult;
+                    }
+
+                    cscResult.SetPath((byte)(bPath + 1));
+                    return cscResult;
+                }
+
+                cscResult.StepUp();
+            } while (true);
+        }
+        [Pure]
         public ChunkSpaceCoordinates GetParent(byte AOrder = 0x1)
         {
             ChunkSpaceCoordinates cscParent = this;
@@ -171,6 +204,10 @@ namespace VoxelMash.Grids
         #region IComparable<ChunkSpaceCoordinates>
         public int CompareTo(ChunkSpaceCoordinates AOther)
         {
+            int iOutOfRange = (this.FShift != 9 ? 1 : 0) - (AOther.FShift != 9 ? 1 : 0);
+            if (iOutOfRange != 0)
+                return -iOutOfRange;
+
             int iThis = (this.FZ << 16 | this.FY << 8 | this.FX) << this.FShift;
             int iOther = (AOther.FZ << 16 | AOther.FY << 8 | AOther.FX) << AOther.FShift;
             int iMask = 0x00808080;
@@ -178,7 +215,7 @@ namespace VoxelMash.Grids
             int iLevelDiff = this.FShift - AOther.FShift;
             byte bMax = (byte)(8 - (iLevelDiff > 0 ? this.FShift : AOther.FShift));
 
-            for (byte bShift = 0; bShift < bMax; bShift++)
+            for (byte bShift = 0; bShift <= bMax; bShift++)
             {
                 int iDiff = (iThis & (iMask >> bShift))
                             - (iOther & (iMask >> bShift));

@@ -88,7 +88,7 @@ namespace VoxelMashTest
             scoOctree.Set(new Coords(0, 0, 0, 0), 2, ref iDiscard);
             Assert.AreEqual(8, scoOctree.TerminalCount);
             
-            for (byte bPath = 1; bPath < 8; bPath++)
+            for (byte bPath = 0; bPath < 8; bPath++)
                 Assert.IsTrue(scoOctree.IsLeaf(new Coords(0, 0, 0, 0).GetSibling(bPath)));
         }
 

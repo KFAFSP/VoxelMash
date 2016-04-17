@@ -230,6 +230,42 @@ namespace VoxelMashTest
         }
 
         [TestMethod]
+        public void GetLastChild()
+        {
+            // Constraint 1 : (0, x|y|z) results in (0, x|y|z).
+            Trace.WriteLine("Contraint 1 : constance of voxel nodes.");
+            Assert.AreEqual(
+                new Coords(0, 12, 1, 9),
+                new Coords(0, 12, 1, 9).GetLastChild());
+
+            // Constraint 2 : (8, 0|0|0) results in (0, 255|255|255).
+            Trace.WriteLine("Constraint 2 : root node results in highest voxel.");
+            Assert.AreEqual(
+                new Coords(0, 255, 255, 255),
+                new Coords(8, 0, 0, 0).GetLastChild());
+
+            // Constraint 3 : correctness.
+            Trace.WriteLine("Constraint 3 : correctness.");
+
+            // Example : (1, 0|0|0) has last child (0, 1|1|1) [1 level down].
+            Trace.WriteLine("Example 1 : single step-down.");
+            Assert.AreEqual(
+                new Coords(0, 1, 1, 1),
+                new Coords(1, 0, 0, 0).GetLastChild());
+
+            // Example : (3, 0|0|0) has last child (0, 7|7|7) [3 levels down].
+            Trace.WriteLine("Example 2 : mutli step-down.");
+            Assert.AreEqual(
+                new Coords(0, 7, 7, 7),
+                new Coords(3, 0, 0, 0).GetLastChild());
+
+            // Constraint 4 : (8, 1|0|0) is greater than anything.
+            Trace.WriteLine("Constraint 4 : largest node with impossible value.");
+            Assert.IsTrue(
+                Coords.LastVoxel.GetLastChildPlusOne() > Coords.LastVoxel);
+        }
+
+        [TestMethod]
         public void CompareTo()
         {
             // Constraint 1 : root comes before anything.
