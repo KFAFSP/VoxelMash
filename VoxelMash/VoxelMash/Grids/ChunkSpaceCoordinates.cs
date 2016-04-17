@@ -8,9 +8,20 @@ namespace VoxelMash.Grids
         IEquatable<ChunkSpaceCoordinates>,
         IComparable<ChunkSpaceCoordinates>
     {
-        public static ChunkSpaceCoordinates Root { get { return new ChunkSpaceCoordinates(8, 0, 0, 0); } }
-        public static ChunkSpaceCoordinates LastVoxel { get { return new ChunkSpaceCoordinates(0, 255, 255, 255); } }
-        public static ChunkSpaceCoordinates OutOfRange { get { return ChunkSpaceCoordinates.LastVoxel.GetLastChildPlusOne(); } }
+        #region Special coordinate constants
+        public static ChunkSpaceCoordinates Root
+        {
+            get { return new ChunkSpaceCoordinates(8, 0, 0, 0); }
+        }
+        public static ChunkSpaceCoordinates LastVoxel
+        {
+            get { return new ChunkSpaceCoordinates(0, 255, 255, 255); }
+        }
+        public static ChunkSpaceCoordinates OutOfRange
+        {
+            get { return ChunkSpaceCoordinates.LastVoxel.GetLastChildPlusOne(); }
+        }
+        #endregion
 
         private byte FShift;
         private byte FX;
@@ -204,7 +215,7 @@ namespace VoxelMash.Grids
         #region IComparable<ChunkSpaceCoordinates>
         public int CompareTo(ChunkSpaceCoordinates AOther)
         {
-            int iOutOfRange = (this.FShift != 9 ? 1 : 0) - (AOther.FShift != 9 ? 1 : 0);
+            int iOutOfRange = (this.FShift > 8 ? 1 : 0) - (AOther.FShift > 8 ? 1 : 0);
             if (iOutOfRange != 0)
                 return -iOutOfRange;
 
@@ -257,7 +268,24 @@ namespace VoxelMash.Grids
         {
             get { return this.FZ; }
         }
-    
+
+        public bool IsOutOfRange
+        {
+            get { return this.FShift > 8; }
+        }
+        public bool IsRoot
+        {
+            get { return this.FShift == 8; }
+        }
+        public bool IsBlock
+        {
+            get { return this.FShift == 4; }
+        }
+        public bool IsVoxel
+        {
+            get { return this.FShift == 0; }
+        }
+
         #region Operator overloads
         public static bool operator ==(
             ChunkSpaceCoordinates ALeft,
