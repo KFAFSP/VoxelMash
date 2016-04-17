@@ -167,6 +167,8 @@ namespace VoxelMash.Grids
             }
         }
 
+        public const byte C_ChunkSize = 0xFF;
+
         #region Special coordinate constants
         public static ChunkSpaceCoordinates Root
         {
@@ -398,14 +400,6 @@ namespace VoxelMash.Grids
         }
         #endregion
 
-        public byte Mask
-        {
-            get { return (byte)(0xFF >> this.FShift); }
-        }
-        public byte Level
-        {
-            get { return (byte)(8 - this.FShift); }
-        }
         public int Volume
         {
             get { return 1 << (this.FShift * 3); }
