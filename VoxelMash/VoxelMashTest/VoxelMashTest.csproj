@@ -59,6 +59,7 @@
     <Compile Include="SparseChunkConstraintsTest.cs" />
     <Compile Include="SparseChunkPerformanceTest.cs" />
     <Compile Include="CoordinateSerializationTest.cs" />
+    <Compile Include="SparseChunkSerializationTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VoxelMash\VoxelMash.csproj">
