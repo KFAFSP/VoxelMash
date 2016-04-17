@@ -35,6 +35,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="dotMemory.Unit">
+      <HintPath>..\packages\JetBrains.DotMemoryUnit.2.2.20160412.92019\Lib\dotMemory.Unit.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
   </ItemGroup>
   <Choose>
@@ -50,17 +53,20 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="ChunkTest.cs" />
-    <Compile Include="CoordinateTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TerminalTest.cs" />
-    <Compile Include="TestHelpers.cs" />
+    <Compile Include="CoordinateConstraintsTest.cs" />
+    <Compile Include="CoordinatePerformaceTest.cs" />
+    <Compile Include="SparseChunkConstraintsTest.cs" />
+    <Compile Include="SparseChunkPerformanceTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VoxelMash\VoxelMash.csproj">
       <Project>{4b9a50d0-6d4d-437e-a984-dd668f40f16f}</Project>
       <Name>VoxelMash</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

@@ -1,551 +1,261 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Globalization;
-using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace VoxelMash.Grids
 {
-    public struct ChunkSpaceCoords :
-        IEquatable<ChunkSpaceCoords>,
-        IComparable<ChunkSpaceCoords>,
-        IFormattable
+    public struct ChunkSpaceCoordinates :
+        IEquatable<ChunkSpaceCoordinates>,
+        IComparable<ChunkSpaceCoordinates>
     {
-        private static readonly Regex _FCanonicRegex = new Regex(@"^\((?<Level>[0-8]), (?<X>[0-9]+)\|(?<Y>[0-9]+)\|(?<Z>[0-9]+)\)$");
-
-        public static ChunkSpaceCoords Root
+        #region Special coordinate constants
+        public static ChunkSpaceCoordinates Root
         {
-            get { return new ChunkSpaceCoords(ChunkSpaceLevel.Chunk, 0, 0, 0); }
+            get { return new ChunkSpaceCoordinates(8, 0, 0, 0); }
         }
-
-        #region Unchecked coordinate math functions
-        private static void Unchecked_Increment(
-            ref ChunkSpaceCoords ALeft,
-            ChunkSpaceCoords ARight)
+        public static ChunkSpaceCoordinates LastVoxel
         {
-            unchecked
-            {
-                byte bDiff = (byte)((byte)ALeft.FLevel - (byte)ARight.FLevel);
-
-                ALeft.FLevel = (ChunkSpaceLevel)Math.Max((byte)ALeft.FLevel, (byte)ARight.FLevel);
-                ALeft.FX += (byte)(ARight.FX << bDiff);
-                ALeft.FY += (byte)(ARight.FY << bDiff);
-                ALeft.FZ += (byte)(ARight.FZ << bDiff);
-            }
+            get { return new ChunkSpaceCoordinates(0, 255, 255, 255); }
         }
-        private static void Unchecked_StepUp(
-            ref ChunkSpaceCoords ACoords,
-            byte ASteps)
+        public static ChunkSpaceCoordinates OutOfRange
         {
-            if (ASteps == 0)
-                return;
-
-            unchecked
-            {
-                ACoords.FLevel = (ChunkSpaceLevel)Math.Max(0, (byte)ACoords.FLevel - ASteps);
-                ACoords.FX >>= ASteps;
-                ACoords.FY >>= ASteps;
-                ACoords.FZ >>= ASteps;
-            }
-        }
-        private static void Unchecked_StepDown(
-            ref ChunkSpaceCoords ACoords,
-            byte APath)
-        {
-            unchecked
-            {
-                ACoords.FLevel = (ChunkSpaceLevel)Math.Min((byte)ACoords.FLevel + 1, 8);
-                ACoords.FX = (byte)((ACoords.FX << 1) | APath & 0x01);
-                ACoords.FY = (byte)((ACoords.FY << 1) | ((APath & 0x02) >> 1));
-                ACoords.FZ = (byte)((ACoords.FZ << 1) | ((APath & 0x04) >> 2));
-            }
+            get { return ChunkSpaceCoordinates.LastVoxel.GetLastChildPlusOne(); }
         }
         #endregion
 
-        #region Coordinate math functions
-        public static void Increment(
-            ref ChunkSpaceCoords ALeft,
-            ChunkSpaceCoords ARight)
-        {
-            if (ALeft.FLevel < ARight.FLevel)
-            {
-                ChunkSpaceCoords cscSwap = ALeft;
-                ALeft = ARight;
-                ARight = cscSwap;
-            }
-            
-            ChunkSpaceCoords.Unchecked_Increment(ref ALeft, ARight);
-        }
-        public static void StepUp(
-            ref ChunkSpaceCoords ACoords,
-            byte ASteps = 1)
-        {
-            ChunkSpaceCoords.Unchecked_StepUp(ref ACoords, Math.Min((byte)ACoords.FLevel, ASteps));
-        }
-        public static void StepDown(
-            ref ChunkSpaceCoords ACoords,
-            byte APath = 0x00)
-        {
-            if (ACoords.FLevel == ChunkSpaceLevel.Voxel)
-                return;
-
-            ChunkSpaceCoords.Unchecked_StepDown(ref ACoords, APath);
-        }
-        public static void StepDown(
-            ref ChunkSpaceCoords ACoords,
-            IEnumerable<byte> APaths)
-        {
-            if (APaths == null)
-                throw new ArgumentNullException("APaths");
-
-            foreach (byte bPath in APaths)
-                ChunkSpaceCoords.StepDown(ref ACoords, bPath);
-        }
-        #endregion
-
-        #region Tree operations
-        public static bool IsParent(
-            ChunkSpaceCoords AParent,
-            ChunkSpaceCoords AChild)
-        {
-            if (AParent.FLevel >= AChild.FLevel)
-                return false;
-
-            unchecked
-            {
-                byte bDiff = (byte)((byte)AChild.FLevel - (byte)AParent.FLevel);
-
-                return AChild.FX >> bDiff == AParent.FX
-                       && AChild.FY >> bDiff == AParent.FY
-                       && AChild.FZ >> bDiff == AParent.FZ;
-            }
-        }
-
-        public static IEnumerable<ChunkSpaceCoords> EnumerateChildren(
-            ChunkSpaceCoords ACoords,
-            ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Level8)
-        {
-            if (ACoords.FLevel >= AToLevel)
-                yield break;
-
-            Queue<ChunkSpaceCoords> qStepDown = new Queue<ChunkSpaceCoords>((byte)AToLevel);
-            qStepDown.Enqueue(ACoords);
-
-            while (qStepDown.Count > 0)
-            {
-                ChunkSpaceCoords cscCurrent = qStepDown.Dequeue();
-                for (byte bPath = 0; bPath < 8; bPath++)
-                {
-                    ChunkSpaceCoords cscChild = cscCurrent;
-                    cscChild.StepDown(bPath);
-                    yield return cscChild;
-
-                    if (cscChild.FLevel < AToLevel)
-                        qStepDown.Enqueue(cscChild);
-                }
-            }
-        }
-
-        public static IEnumerable<byte> GetRootPath(
-            ChunkSpaceCoords ACoords)
-        {
-            if (ACoords.FLevel == ChunkSpaceLevel.Level0)
-                yield break;
-
-            unchecked
-            {
-                for (int iLevel = (byte)ACoords.FLevel - 1; iLevel >= 0; iLevel--)
-                {
-                    yield return (byte)(((ACoords.FX >> iLevel) & 0x01)
-                                        | (((ACoords.FY >> iLevel) & 0x01) << 1)
-                                        | (((ACoords.FZ >> iLevel) & 0x01) << 2));
-                }
-            }
-        }
-        #endregion
-
-        #region Serialization functions
-        public static byte[] ToBytes(ChunkSpaceCoords ACoords)
-        {
-            unchecked
-            {
-                int iLength = ACoords.ByteSize;
-
-                switch (iLength)
-                {
-                    case 2:
-                        return new[]
-                        {
-                            (byte)(((byte)ACoords.FLevel << 4) | ACoords.FZ),
-                            (byte)((ACoords.FY << 4) | ACoords.FX)
-                        };
-
-                    case 3:
-                        return new[]
-                        {
-                            (byte)(((byte)ACoords.FLevel << 5) | (ACoords.FZ >> 2)),
-                            (byte)(((ACoords.FZ & 0x03) << 6) | (ACoords.FY >> 1)),
-                            (byte)(((ACoords.FY & 0x01) << 7) | ACoords.FX)
-                        };
-
-                    case 4:
-                        byte[] aBytes = BitConverter.GetBytes(ACoords.AsInt32);
-                        if (BitConverter.IsLittleEndian)
-                            Array.Reverse(aBytes);
-
-                        return aBytes;
-
-                    default:
-                        return null;
-                }
-            }
-        }
-        public static string ToCanonic(ChunkSpaceCoords ACoords)
-        {
-            return ACoords.ToString("C", CultureInfo.InvariantCulture);
-        }
-
-        private static int GetLengthType(byte AFirst)
-        {
-            if (AFirst == 0x08)
-                return 4;
-
-            if (AFirst >> 7 == 1)
-                return 3;
-
-            return 2;
-        }
-
-        public static ChunkSpaceCoords FromBytes(
-            byte[] ABytes,
-            int AOffset = 0)
-        {
-            if (ABytes == null)
-                throw new ArgumentNullException("ABytes");
-
-            unchecked
-            {
-                int iLength = ChunkSpaceCoords.GetLengthType(ABytes[0]);
-
-                switch (iLength)
-                {
-                    case 2:
-                        return new ChunkSpaceCoords(
-                            (ChunkSpaceLevel)(ABytes[0] >> 4),
-                            (byte)(ABytes[1] & 0x0F),
-                            (byte)(ABytes[1] >> 4),
-                            (byte)(ABytes[0] & 0x0F));
-                    case 3:
-                        return new ChunkSpaceCoords(
-                            (ChunkSpaceLevel)(ABytes[0] >> 5),
-                            (byte)(ABytes[2] & 0x7F),
-                            (byte)((ABytes[2] >> 7) | ((ABytes[1] & 0x3F) << 1)),
-                            (byte)((ABytes[1] >> 6) | ((ABytes[0] & 0x1F) << 2)));
-
-                    case 4:
-                        return new ChunkSpaceCoords(
-                            (ChunkSpaceLevel)ABytes[0],
-                            ABytes[3],
-                            ABytes[2],
-                            ABytes[1]);
-
-                    default:
-                        throw new FormatException("Invalid coordinate byte format.");
-                }
-            }
-        }
-        public static ChunkSpaceCoords FromCanonic(string ACanonic)
-        {
-            if (ACanonic == null)
-                throw new ArgumentNullException("ACanonic");
-
-            Match mMatch = ChunkSpaceCoords._FCanonicRegex.Match(ACanonic);
-            if (!mMatch.Success)
-                throw new FormatException("Input string is not canonic.");
-
-            try
-            {
-                return new ChunkSpaceCoords(
-                    (ChunkSpaceLevel)Byte.Parse(mMatch.Groups["Level"].Value),
-                    Byte.Parse(mMatch.Groups["X"].Value),
-                    Byte.Parse(mMatch.Groups["Y"].Value),
-                    Byte.Parse(mMatch.Groups["Z"].Value));
-            }
-            catch
-            {
-                throw new FormatException("Invalid canonic chunk space coordinate string.");
-            }
-        }
-        #endregion
-
-        private ChunkSpaceLevel FLevel;
-
+        private byte FShift;
         private byte FX;
         private byte FY;
         private byte FZ;
 
-        public ChunkSpaceCoords(
-            ChunkSpaceLevel ALevel,
+        public ChunkSpaceCoordinates(
+            byte AShift,
             byte AX, byte AY, byte AZ)
         {
-            this.FLevel = ALevel;
-            byte bMask = unchecked((byte)(0xFF >> (byte)(8 - ALevel)));
+            if (AShift > 8)
+                throw new ArgumentException("Shift must be less or equal to 8.");
+
+            this.FShift = AShift;
+            byte bMask = (byte)(0xFF >> this.FShift);
 
             this.FX = (byte)(AX & bMask);
             this.FY = (byte)(AY & bMask);
             this.FZ = (byte)(AZ & bMask);
         }
-        
+
+        public void StepDown(byte APath)
+        {
+            if (this.FShift == 0)
+                throw new InvalidOperationException("Cannot step down voxel address volume.");
+
+            this.FShift--;
+            this.FX = (byte)((this.FX << 1) | (APath & 0x1));
+            this.FY = (byte)((this.FY << 1) | ((APath & 0x2) >> 1));
+            this.FZ = (byte)((this.FZ << 1) | ((APath & 0x4) >> 2));
+        }
+        public bool StepUp(byte AAmount = 0x1)
+        {
+            AAmount = (byte)Math.Min(AAmount, 8 - this.FShift);
+            if (AAmount == 0)
+                return false;
+
+            this.FShift += AAmount;
+            this.FX >>= AAmount;
+            this.FY >>= AAmount;
+            this.FZ >>= AAmount;
+            return true;
+        }
+
+        public void SetPath(byte APath)
+        {
+            if ((APath & 0x1) == 0x1)
+                this.FX |= 0x01;
+            else
+                this.FX &= 0xFE;
+            
+            if ((APath & 0x2) == 0x2)
+                this.FY |= 0x01;
+            else
+                this.FY &= 0xFE;
+
+            if ((APath & 0x4) == 0x4)
+                this.FZ |= 0x01;
+            else
+                this.FZ &= 0xFE;
+        }
+
+        #region Pure methods
+        [Pure]
+        public bool IsParentOf(ChunkSpaceCoordinates AOther)
+        {
+            int iDiff = this.FShift - AOther.FShift;
+            if (iDiff <= 0)
+                return false;
+
+            return AOther.FX >> iDiff == this.FX
+                   && AOther.FY >> iDiff == this.FY
+                   && AOther.FZ >> iDiff == this.FZ;
+        }
+
+        [Pure]
+        public ChunkSpaceCoordinates GetOffset()
+        {
+            return new ChunkSpaceCoordinates(
+                0,
+                (byte)(this.FX << this.FShift),
+                (byte)(this.FY << this.FShift),
+                (byte)(this.FZ << this.FShift));
+        }
+        [Pure]
+        public byte GetPath(byte AShift = 0x0)
+        {
+            return (byte)(((this.FX >> AShift) & 0x1)
+                          | (((this.FY >> AShift) & 0x1) << 1)
+                          | (((this.FZ >> AShift) & 0x1) << 2));
+        }
+        [Pure]
+        public IEnumerable<byte> GetPath(bool AUpward, byte AStopShift = 8)
+        {
+            int iLimit = Math.Max(AStopShift - this.FShift, 0);
+            for (byte bShift = 0; bShift < iLimit; bShift++)
+                yield return this.GetPath(AUpward ? bShift : (byte)(iLimit - bShift - 1));
+        }
+        [Pure]
+        public int GetIndex()
+        {
+            return this.FX
+                   | (this.FY << 8)
+                   | (this.FZ << 16)
+                   | (this.FShift << 24);
+        }
+        [Pure]
+        public ChunkSpaceCoordinates GetSibling(byte APath)
+        {
+            ChunkSpaceCoordinates cscSibling = this;
+            cscSibling.SetPath(APath);
+            return cscSibling;
+        }
+
+        [Pure]
+        public ChunkSpaceCoordinates GetChild(byte APath)
+        {
+            ChunkSpaceCoordinates cscChild = this;
+            cscChild.StepDown(APath);
+            return cscChild;
+        }
+        [Pure]
+        public ChunkSpaceCoordinates GetLastChild()
+        {
+            byte bMask = (byte)(0xFF >> (8 - this.FShift));
+            return new ChunkSpaceCoordinates(
+                0,
+                (byte)(this.FX | bMask),
+                (byte)(this.FY | bMask),
+                (byte)(this.FZ | bMask));
+        }
+        [Pure]
+        public ChunkSpaceCoordinates GetLastChildPlusOne()
+        {
+            ChunkSpaceCoordinates cscResult = this;
+            do
+            {
+                byte bPath = cscResult.GetPath();
+                if (bPath < 0x7)
+                {
+                    if (cscResult.FShift == 8)
+                    {
+                        cscResult.FShift = 9;
+                        return cscResult;
+                    }
+
+                    cscResult.SetPath((byte)(bPath + 1));
+                    return cscResult;
+                }
+
+                cscResult.StepUp();
+            } while (true);
+        }
+        [Pure]
+        public ChunkSpaceCoordinates GetParent(byte AOrder = 0x1)
+        {
+            ChunkSpaceCoordinates cscParent = this;
+            cscParent.StepUp(AOrder);
+            return cscParent;
+        }
+        #endregion
+
         #region System.Object overrides
         public override bool Equals(object AOther)
         {
-            if (AOther is ChunkSpaceCoords)
-                return this.Equals((ChunkSpaceCoords)AOther);
+            if (AOther is ChunkSpaceCoordinates)
+                return this.Equals((ChunkSpaceCoordinates)AOther);
 
             return false;
         }
         public override int GetHashCode()
         {
-            return this.AsInt32;
+            return this.GetIndex();
         }
         public override string ToString()
         {
-            return this.ToString(null);
+            return String.Format("({0}, {1}|{2}|{3})", this.FShift, this.FX, this.FY, this.FZ);
         }
         #endregion
 
-        #region IEquatable<ChunkSpaceCoords>
-        [Pure]
-        public bool Equals(ChunkSpaceCoords AOther)
+        #region IEquatable<ChunkSpaceCoordinates>
+        public bool Equals(ChunkSpaceCoordinates AOther)
         {
-            return this.FLevel == AOther.FLevel
+            return this.FShift == AOther.FShift
                    && this.FX == AOther.FX
                    && this.FY == AOther.FY
                    && this.FZ == AOther.FZ;
         }
         #endregion
 
-        #region IComparable<ChunkSpaceCoords>
-        [Pure]
-        public int CompareTo(ChunkSpaceCoords AOther)
+        #region IComparable<ChunkSpaceCoordinates>
+        public int CompareTo(ChunkSpaceCoordinates AOther)
         {
-            if (this == AOther)
-                return 0;
+            int iOutOfRange = (this.FShift > 8 ? 1 : 0) - (AOther.FShift > 8 ? 1 : 0);
+            if (iOutOfRange != 0)
+                return -iOutOfRange;
 
-            ChunkSpaceCoords cscThis = this;
+            int iThis = (this.FZ << 16 | this.FY << 8 | this.FX) << this.FShift;
+            int iOther = (AOther.FZ << 16 | AOther.FY << 8 | AOther.FX) << AOther.FShift;
+            int iMask = 0x00808080;
 
-            while (AOther.FLevel > cscThis.FLevel)
+            int iLevelDiff = this.FShift - AOther.FShift;
+            byte bMax = (byte)(8 - (iLevelDiff > 0 ? this.FShift : AOther.FShift));
+
+            for (byte bShift = 0; bShift <= bMax; bShift++)
             {
-                if (ChunkSpaceCoords.IsParent(cscThis, AOther))
-                    return -1;
+                int iDiff = (iThis & (iMask >> bShift))
+                            - (iOther & (iMask >> bShift));
 
-                AOther.StepUp();
-            }
-            while (AOther.FLevel < cscThis.FLevel)
-            {
-                if (ChunkSpaceCoords.IsParent(AOther, cscThis))
-                    return 1;
-
-                cscThis.StepUp();
-            }
-            
-            while (cscThis.Parent != AOther.Parent)
-            {
-                cscThis.StepUp();
-                AOther.StepUp();
+                if (iDiff != 0)
+                    return iDiff;
             }
 
-            int iDiff = cscThis.FZ - AOther.FZ;
-            if (iDiff != 0) return iDiff;
-            iDiff = cscThis.FY - AOther.FY;
-            if (iDiff != 0) return iDiff;
-            return cscThis.FX - AOther.FX;
+            return -iLevelDiff;
         }
         #endregion
 
-        #region IFormattable
-        [Pure]
-        public string ToString(string AFormat, IFormatProvider AFormatProvider = null)
+        public byte Mask
         {
-            AFormat = AFormat != null ? AFormat.ToUpperInvariant() : "G";
-
-            switch (AFormat)
-            {
-                case "C":
-                case "G":
-                    return String.Format(AFormatProvider, "({0}, {1}|{2}|{3})", (byte)this.FLevel, this.FX, this.FY, this.FZ);
-
-                case "L":
-                    return String.Format(AFormat, "{0}", (byte)this.FLevel);
-                case "LN":
-                    return String.Format(AFormat, "{0}", this.FLevel);
-                case "X":
-                    return String.Format(AFormat, "{0}", this.FX);
-                case "Y":
-                    return String.Format(AFormat, "{0}", this.FY);
-                case "Z":
-                    return String.Format(AFormat, "{0}", this.FZ);
-
-                default:
-                    throw new FormatException(String.Format("Invalid format specifier \"{0}\".", AFormat));
-            }
+            get { return (byte)(0xFF >> this.FShift); }
         }
-        #endregion
-
-        #region Impure operator shortcuts
-        public void Add(ChunkSpaceCoords AOther)
+        public byte Level
         {
-            ChunkSpaceCoords.Increment(ref this, AOther);
-        }
-
-        public void StepUp(byte ASteps = 1)
-        {
-            ChunkSpaceCoords.StepUp(ref this, ASteps);
-        }
-        public void StepDown(byte APath = 0x00)
-        {
-            ChunkSpaceCoords.StepDown(ref this, APath);
-        }
-        public void StepDown(IEnumerable<byte> APath)
-        {
-            ChunkSpaceCoords.StepDown(ref this, APath);
-        }
-        #endregion
-
-        #region Pure operator shortcuts
-        [Pure]
-        public bool IsParentOf(ChunkSpaceCoords AChild)
-        {
-            return ChunkSpaceCoords.IsParent(this, AChild);
-        }
-        [Pure]
-        public bool IsChildOf(ChunkSpaceCoords AParent)
-        {
-            return ChunkSpaceCoords.IsParent(AParent, this);
-        }
-
-        [Pure]
-        public ChunkSpaceCoords GetParent()
-        {
-            ChunkSpaceCoords cscResult = this;
-            cscResult.StepUp();
-            return cscResult;
-        }
-        [Pure]
-        public ChunkSpaceCoords GetChild(byte APath = 0x00)
-        {
-            ChunkSpaceCoords cscResult = this;
-            cscResult.StepDown(APath);
-            return cscResult;
-        }
-        [Pure]
-        public ChunkSpaceCoords GetChild(byte[] APaths)
-        {
-            ChunkSpaceCoords cscResult = this;
-            cscResult.StepDown(APaths);
-            return cscResult;
-        }
-        [Pure]
-        public IEnumerable<ChunkSpaceCoords> GetChildren(
-            ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Voxel)
-        {
-            return ChunkSpaceCoords.EnumerateChildren(this, AToLevel);
-        }
-
-        [Pure]
-        public ChunkSpaceCoords GetFirstChild(
-            ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Voxel)
-        {
-            ChunkSpaceCoords cscChild = this;
-            // ReSharper disable once LoopVariableIsNeverChangedInsideLoop
-            while (cscChild.FLevel < AToLevel)
-                cscChild.StepDown(0x00);
-
-            return cscChild;
-        }
-        [Pure]
-        public ChunkSpaceCoords GetLastChild(
-            ChunkSpaceLevel AToLevel = ChunkSpaceLevel.Voxel)
-        {
-            ChunkSpaceCoords cscChild = this;
-            // ReSharper disable once LoopVariableIsNeverChangedInsideLoop
-            while (cscChild.FLevel < AToLevel)
-                cscChild.StepDown(0x07);
-
-            return cscChild;
-        }
-        
-        [Pure]
-        public IEnumerable<byte> GetRootPath()
-        {
-            return ChunkSpaceCoords.GetRootPath(this);
-        }
-        #endregion
-
-        public ChunkSpaceLevel Level
-        {
-            get { return this.FLevel; }
-        }
-
-        public Int32 AsInt32
-        {
-            get 
-            {
-                return this.FX
-                       | this.FY << 8
-                       | this.FZ << 16
-                       | (byte)this.FLevel << 24;
-            }
-        }
-        public int ByteSize
-        {
-            get
-            {
-                if (this.FLevel == ChunkSpaceLevel.Level8)
-                    return 4;
-                if (this.FLevel > ChunkSpaceLevel.Level4)
-                    return 3;
-                return 2;
-            }
+            get { return (byte)(8 - this.FShift); }
         }
         public int Volume
         {
-            get { return 1 << ((8 - (byte)this.FLevel) * 3); }
+            get { return 1 << (this.FShift * 3); }
         }
 
-        public ChunkSpaceCoords Parent
+        public byte Shift
         {
-            get { return this.GetParent(); }
+            get { return this.FShift; }
         }
-        
-        public IEnumerable<ChunkSpaceCoords> Children
-        {
-            get { return this.GetChildren(); }
-        }
-        public ChunkSpaceCoords FirstChild
-        {
-            get { return this.GetFirstChild(); }
-        }
-        public ChunkSpaceCoords LastChild
-        {
-            get { return this.GetLastChild(); }
-        }
-
-        public byte Path
-        {
-            get
-            {
-                return (byte)(this.FX & 0x1
-                              | (((this.FY >> 1) & 0x1) << 1)
-                              | (((this.FZ >> 1) & 0x1) << 2));
-            }
-        }
-        public IEnumerable<byte> RootPath
-        {
-            get { return this.GetRootPath(); }
-        }
-
         public byte X
         {
             get { return this.FX; }
@@ -558,61 +268,89 @@ namespace VoxelMash.Grids
         {
             get { return this.FZ; }
         }
-    
-        #region Static operator overloads
-        public static ChunkSpaceCoords operator +(
-            ChunkSpaceCoords ALeft,
-            ChunkSpaceCoords ARight)
+
+        public bool IsOutOfRange
         {
-            ChunkSpaceCoords cscResult = ALeft;
-            cscResult.Add(ARight);
-            return cscResult;
+            get { return this.FShift > 8; }
         }
-        public static ChunkSpaceCoords operator +(
-            ChunkSpaceCoords ALeft,
-            byte ARight)
+        public bool IsRoot
         {
-            ChunkSpaceCoords cscResult = ALeft;
-            cscResult.StepDown(ARight);
-            return cscResult;
+            get { return this.FShift == 8; }
+        }
+        public bool IsBlock
+        {
+            get { return this.FShift == 4; }
+        }
+        public bool IsVoxel
+        {
+            get { return this.FShift == 0; }
         }
 
+        #region Operator overloads
         public static bool operator ==(
-            ChunkSpaceCoords ALeft,
-            ChunkSpaceCoords ARight)
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
         {
             return ALeft.Equals(ARight);
         }
         public static bool operator !=(
-            ChunkSpaceCoords ALeft,
-            ChunkSpaceCoords ARight)
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
         {
             return !ALeft.Equals(ARight);
         }
 
-        public static bool operator <(
-            ChunkSpaceCoords ALeft,
-            ChunkSpaceCoords ARight)
+        public static ChunkSpaceCoordinates operator +(
+            ChunkSpaceCoordinates ALeft,
+            byte ARight)
         {
-            return ALeft.CompareTo(ARight) < 0;
+            ALeft.StepDown(ARight);
+            return ALeft;
         }
-        public static bool operator <=(
-            ChunkSpaceCoords ALeft,
-            ChunkSpaceCoords ARight)
+        public static ChunkSpaceCoordinates operator -(
+            ChunkSpaceCoordinates ALeft,
+            byte ARight)
         {
-            return ALeft.CompareTo(ARight) <= 0;
+            ALeft.StepUp(ARight);
+            return ALeft;
         }
+        public static ChunkSpaceCoordinates operator |(
+            ChunkSpaceCoordinates ALeft,
+            byte APath)
+        {
+            ALeft.SetPath(APath);
+            return ALeft;
+        }
+
+        public static ChunkSpaceCoordinates operator --(ChunkSpaceCoordinates ALeft)
+        {
+            ALeft.StepUp();
+            return ALeft;
+        }
+
         public static bool operator >(
-            ChunkSpaceCoords ALeft,
-            ChunkSpaceCoords ARight)
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
         {
             return ALeft.CompareTo(ARight) > 0;
         }
+        public static bool operator <(
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
+        {
+            return ALeft.CompareTo(ARight) < 0;
+        }
         public static bool operator >=(
-            ChunkSpaceCoords ALeft,
-            ChunkSpaceCoords ARight)
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
         {
             return ALeft.CompareTo(ARight) >= 0;
+        }
+        public static bool operator <=(
+            ChunkSpaceCoordinates ALeft,
+            ChunkSpaceCoordinates ARight)
+        {
+            return ALeft.CompareTo(ARight) <= 0;
         }
         #endregion
     }
