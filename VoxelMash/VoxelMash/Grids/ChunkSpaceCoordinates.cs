@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
+
+using VoxelMash.Serialization;
 
 namespace VoxelMash.Grids
 {
@@ -8,6 +11,162 @@ namespace VoxelMash.Grids
         IEquatable<ChunkSpaceCoordinates>,
         IComparable<ChunkSpaceCoordinates>
     {
+        public sealed class SerializationHandler
+        {
+            private readonly Stream FBaseStream;
+            private bool FAllowPacking;
+
+            public SerializationHandler(
+                Stream ABaseStream,
+                bool AAllowPacking = true)
+            {
+                if (ABaseStream == null)
+                    throw new ArgumentNullException("ABaseStream");
+
+                this.FBaseStream = ABaseStream;
+                this.FAllowPacking = AAllowPacking;
+            }
+
+            public int Read(out ChunkSpaceCoordinates ACoords)
+            {
+                byte bFirst = this.FBaseStream.SafeReadByte();
+
+                if ((bFirst & 0xF0) == 0x80)
+                {
+                    // Full length.
+                    ACoords.FShift = (byte)(bFirst & 0x0F);
+                    ACoords.FX = this.FBaseStream.SafeReadByte();
+                    ACoords.FY = this.FBaseStream.SafeReadByte();
+                    ACoords.FZ = this.FBaseStream.SafeReadByte();
+                    return 4;
+                }
+                
+                if (!this.FAllowPacking)                   
+                    throw new FormatException("Packed data is not supported in this context.");
+
+                if (bFirst == 0x00)
+                {
+                    // Chunk.
+                    ACoords.FShift = 8;
+                    ACoords.FX = 0;
+                    ACoords.FY = 0;
+                    ACoords.FZ = 0;
+                    return 1;
+                }
+
+                if (bFirst == 0x60)
+                {
+                    // Out of range.
+                    ACoords.FShift = 9;
+                    ACoords.FX = 0;
+                    ACoords.FY = 0;
+                    ACoords.FZ = 0;
+                    return 1;
+                }
+
+                byte bMagic = (byte)(bFirst & 0xE0);
+                if (bMagic == 0x00)
+                {
+                    // Large block group.
+                    ACoords.FShift = 7;
+                    ACoords.FX = (byte)(bFirst & 0x1);
+                    ACoords.FY = (byte)((bFirst >> 1) & 0x1);
+                    ACoords.FZ = (byte)((bFirst >> 2) & 0x1);
+                    return 1;
+                }
+
+                byte bSecond = this.FBaseStream.SafeReadByte();
+                if (bMagic <= 0x40)
+                {
+                    // Up to blocks.
+                    ACoords.FShift = (byte)(8 - (bFirst >> 4));
+                    ACoords.FZ = (byte)(bFirst & 0x0F);
+                    ACoords.FY = (byte)(bSecond >> 4);
+                    ACoords.FX = (byte)(bSecond & 0x0F);
+                    return 2;
+                }
+
+                // Excluding voxel.
+                byte bThird = this.FBaseStream.SafeReadByte();
+                ACoords.FShift = (byte)(8 - (bFirst >> 5));
+                ACoords.FZ = (byte)(((bFirst & 0x1F) << 2) | (bSecond >> 6));
+                ACoords.FY = (byte)(((bSecond & 0x3F) << 1) | (bThird >> 7));
+                ACoords.FX = (byte)(bThird & 0x7F);
+                return 3;
+            }
+            public int Write(ChunkSpaceCoordinates ACoords)
+            {
+                if (this.FAllowPacking && ACoords.FShift != 0)
+                {
+                    switch (ACoords.Shift)
+                    {
+                        case 1:
+                        case 2:
+                        case 3:
+                            // Excluding voxels.
+                            this.FBaseStream.WriteByte(
+                                (byte)(((8 - ACoords.FShift) << 5)
+                                       | (ACoords.FZ >> 2)));
+                            this.FBaseStream.WriteByte(
+                                (byte)(((ACoords.FZ & 0x3) << 6)
+                                       | (ACoords.FY >> 1)));
+                            this.FBaseStream.WriteByte(
+                                (byte)(((ACoords.FY & 0x1) << 7)
+                                       | ACoords.FX));
+                            return 3;
+
+                        case 4:
+                        case 5:
+                        case 6:
+                            // Up to blocks.
+                            this.FBaseStream.WriteByte(
+                                (byte)(((8 - ACoords.FShift) << 4)
+                                       | ACoords.FZ));
+                            this.FBaseStream.WriteByte(
+                                (byte)((ACoords.FY << 4)
+                                       | ACoords.FX));
+                            return 2;
+
+                        case 7:
+                            // Large block group.
+                            this.FBaseStream.WriteByte(
+                                (byte)(0x1
+                                       | (ACoords.FZ << 2)
+                                       | (ACoords.FY << 1)
+                                       | ACoords.FX));
+                            return 1;
+
+                        case 8:
+                            // Chunk.
+                            this.FBaseStream.WriteByte(0x00);
+                            return 1;
+
+                        default:
+                            // Out of range.
+                            this.FBaseStream.WriteByte(0x60);
+                            return 1;
+                    }
+                }
+
+                // Anything.
+                this.FBaseStream.WriteByte((byte)(0x80 | ACoords.FShift));
+                this.FBaseStream.WriteByte(ACoords.FZ);
+                this.FBaseStream.WriteByte(ACoords.FY);
+                this.FBaseStream.WriteByte(ACoords.FX);
+                return 4;
+            }
+
+            public Stream BaseStream
+            {
+                get { return this.FBaseStream; }
+            }
+            public bool AllowPacking
+            {
+                get { return this.FAllowPacking; }
+                set { this.FAllowPacking = value; }
+            }
+        }
+
         #region Special coordinate constants
         public static ChunkSpaceCoordinates Root
         {
