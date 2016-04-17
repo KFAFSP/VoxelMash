@@ -300,6 +300,34 @@ namespace VoxelMash.Grids
             return !ALeft.Equals(ARight);
         }
 
+        public static ChunkSpaceCoordinates operator +(
+            ChunkSpaceCoordinates ALeft,
+            byte ARight)
+        {
+            ALeft.StepDown(ARight);
+            return ALeft;
+        }
+        public static ChunkSpaceCoordinates operator -(
+            ChunkSpaceCoordinates ALeft,
+            byte ARight)
+        {
+            ALeft.StepUp(ARight);
+            return ALeft;
+        }
+        public static ChunkSpaceCoordinates operator |(
+            ChunkSpaceCoordinates ALeft,
+            byte APath)
+        {
+            ALeft.SetPath(APath);
+            return ALeft;
+        }
+
+        public static ChunkSpaceCoordinates operator --(ChunkSpaceCoordinates ALeft)
+        {
+            ALeft.StepUp();
+            return ALeft;
+        }
+
         public static bool operator >(
             ChunkSpaceCoordinates ALeft,
             ChunkSpaceCoordinates ARight)
