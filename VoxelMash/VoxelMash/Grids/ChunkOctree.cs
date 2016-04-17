@@ -1,4 +1,6 @@
-﻿using Coords = VoxelMash.Grids.ChunkSpaceCoordinates;
+﻿using System.Diagnostics.Contracts;
+
+using Coords = VoxelMash.Grids.ChunkSpaceCoordinates;
 
 namespace VoxelMash.Grids
 {
@@ -6,6 +8,7 @@ namespace VoxelMash.Grids
     {
         public const ushort C_EmptyMaterial = 0;
 
+        [Pure]
         public abstract void Get(ref Coords ACoords, out ushort AValue);
         public abstract void Set(Coords ACoords, ushort AValue, ref int ABalance);
 

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 
 using C5;
@@ -123,6 +124,7 @@ namespace VoxelMash.Grids
             this.FTerminals.Clear();
         }
 
+        [Pure]
         public bool IsLeaf(Coords ACoords)
         {
             return this.FTerminals.Contains(ACoords);
