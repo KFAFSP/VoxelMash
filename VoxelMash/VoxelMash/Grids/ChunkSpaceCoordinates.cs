@@ -171,25 +171,23 @@ namespace VoxelMash.Grids
         #region IComparable<ChunkSpaceCoordinates>
         public int CompareTo(ChunkSpaceCoordinates AOther)
         {
-            IEnumerator<byte> ieThis = this.GetPath(false).GetEnumerator();
-            IEnumerator<byte> ieOther = AOther.GetPath(false).GetEnumerator();
+            int iThis = (this.FZ << 16 | this.FY << 8 | this.FX) << this.FShift;
+            int iOther = (AOther.FZ << 16 | AOther.FY << 8 | AOther.FX) << AOther.FShift;
+            int iMask = 0x00808080;
 
-            do
+            int iLevelDiff = this.FShift - AOther.FShift;
+            byte bMax = (byte)(8 - (iLevelDiff > 0 ? this.FShift : AOther.FShift));
+
+            for (byte bShift = 0; bShift < bMax; bShift++)
             {
-                bool bThis = ieThis.MoveNext();
-                bool bOther = ieOther.MoveNext();
+                int iDiff = (iThis & (iMask >> bShift))
+                            - (iOther & (iMask >> bShift));
 
-                if (bThis && !bOther)
-                    return 1;
-                if (!bThis && bOther)
-                    return -1;
-                if (!bThis)
-                    return 0;
-
-                int iDiff = ieThis.Current - ieOther.Current;
                 if (iDiff != 0)
                     return iDiff;
-            } while (true);
+            }
+
+            return -iLevelDiff;
         }
         #endregion
 
