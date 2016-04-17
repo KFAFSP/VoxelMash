@@ -34,10 +34,10 @@ namespace VoxelMash.Grids
                 if ((bFirst & 0xF0) == 0x80)
                 {
                     // Full length.
-                    ACoords.FShift = (byte)(bFirst & 0x0F);
-                    ACoords.FX = this.FBaseStream.SafeReadByte();
-                    ACoords.FY = this.FBaseStream.SafeReadByte();
+                    ACoords.FShift = (byte)(bFirst & 0x0F);                   
                     ACoords.FZ = this.FBaseStream.SafeReadByte();
+                    ACoords.FY = this.FBaseStream.SafeReadByte();
+                    ACoords.FX = this.FBaseStream.SafeReadByte();
                     return 4;
                 }
                 
