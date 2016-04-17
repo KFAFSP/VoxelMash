@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
+using JetBrains.Annotations;
+
 namespace VoxelMash.Serialization
 {
     public static class StreamReadingExtensions
     {
+        [NotNull]
         public static byte[] ReadBytes(
             this Stream AByteStream,
             uint ACount)
@@ -159,6 +162,7 @@ namespace VoxelMash.Serialization
             return BitConverter.ToDouble(aRead, 0);
         }
 
+        [NotNull]
         public static string ReadUtf8Zt(
             this Stream AByteStream,
             int ALimit = ushort.MaxValue)

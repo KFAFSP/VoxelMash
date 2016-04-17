@@ -3,13 +3,15 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
+using JetBrains.Annotations;
+
 namespace VoxelMash.Serialization
 {
     public static class StreamWritingExtensions
     {
         public static void WriteBytes(
             this Stream AByteStream,
-            byte[] ABytes)
+            [CanBeNull] byte[] ABytes)
         {
             if (AByteStream == null)
                 throw new ArgumentNullException("AByteStream");
