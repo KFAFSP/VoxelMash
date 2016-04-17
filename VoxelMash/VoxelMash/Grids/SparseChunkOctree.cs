@@ -79,7 +79,7 @@ namespace VoxelMash.Grids
                         return false;
                 }
 
-            Coords cLastChildPlusOne = ACoords.GetLastChildPlusOne();
+            Coords cLastChildPlusOne = ACoords.GetLastChildPlusOne();           
             this.FTerminals.RemoveRangeFromTo(ACoords, cLastChildPlusOne);
 
             if (AValue == ChunkOctree.C_EmptyMaterial)
