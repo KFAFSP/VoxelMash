@@ -243,6 +243,27 @@ namespace VoxelMash.Grids
                 this.FZ &= 0xFE;
         }
 
+        public void MoveNext()
+        {
+            do
+            {
+                if (this.FShift == 8)
+                {
+                    this.FShift = 9;
+                    return;
+                }
+
+                byte bPath = this.GetPath();
+                if (bPath < 0x7)
+                {
+                    this.SetPath((byte)(bPath + 1));
+                    return;
+                }
+
+                this.StepUp();
+            } while (true);
+        }
+
         #region Pure methods
         [Pure]
         public bool IsParentOf(ChunkSpaceCoordinates AOther)
@@ -340,6 +361,14 @@ namespace VoxelMash.Grids
             ChunkSpaceCoordinates cscParent = this;
             cscParent.StepUp(AOrder);
             return cscParent;
+        }
+
+        [Pure]
+        public ChunkSpaceCoordinates GetSuccessor()
+        {
+            ChunkSpaceCoordinates cscSuccessor = this;
+            cscSuccessor.MoveNext();
+            return cscSuccessor;
         }
         #endregion
 

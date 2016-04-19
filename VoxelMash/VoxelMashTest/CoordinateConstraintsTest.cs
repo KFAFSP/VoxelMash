@@ -111,6 +111,28 @@ namespace VoxelMashTest
         }
 
         [TestMethod]
+        public void MoveNext()
+        {
+            // Constraint 1 : voxels should return their siblings.
+            Trace.WriteLine("Constraint 1 : moving between siblings.");
+            Assert.AreEqual(
+                new Coords(0, 1, 0, 0),
+                new Coords(0, 0, 0, 0).GetSuccessor());
+
+            // Constraint 2 : upwards propagation.
+            Trace.WriteLine("Constraint 2 : upward propagation.");
+            Assert.AreEqual(
+                new Coords(1, 1, 0, 0),
+                new Coords(0, 1, 1, 1).GetSuccessor());
+
+            // Constraint 3 : last voxel should return out of range.
+            Trace.WriteLine("Constraint 3 : out of range.");
+            Assert.AreEqual(
+                Coords.OutOfRange,
+                Coords.LastVoxel.GetSuccessor());
+        }
+
+        [TestMethod]
         public void IsParentOf()
         {
             // Constraint 1 : (8, 0|0|0) is parent of anything.
