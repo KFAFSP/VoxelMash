@@ -11,19 +11,16 @@ namespace VoxelMash.Grids
         IEquatable<ChunkSpaceCoordinates>,
         IComparable<ChunkSpaceCoordinates>
     {
-        public sealed class SerializationHandler
+        public sealed class SerializationHandler : StreamAdapter
         {
-            private readonly Stream FBaseStream;
             private bool FAllowPacking;
 
             public SerializationHandler(
                 Stream ABaseStream,
-                bool AAllowPacking = true)
+                bool AAllowPacking = true,
+                bool APropagateDispose = false)
+                : base(ABaseStream, APropagateDispose)
             {
-                if (ABaseStream == null)
-                    throw new ArgumentNullException("ABaseStream");
-
-                this.FBaseStream = ABaseStream;
                 this.FAllowPacking = AAllowPacking;
             }
 
@@ -156,10 +153,6 @@ namespace VoxelMash.Grids
                 return 4;
             }
 
-            public Stream BaseStream
-            {
-                get { return this.FBaseStream; }
-            }
             public bool AllowPacking
             {
                 get { return this.FAllowPacking; }

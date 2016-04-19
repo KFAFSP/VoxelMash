@@ -14,21 +14,19 @@ namespace VoxelMash.Grids
 {
     public class SparseChunkOctree : ChunkOctree
     {
-        public sealed class SerializationHandler
+        public sealed class SerializationHandler : StreamAdapter
         {
-            private readonly Stream FBaseStream;
             private readonly Coords.SerializationHandler FCoordHandler;
 
             public SerializationHandler(
                 Stream ABaseStream,
-                Coords.SerializationHandler ACoordHandler)
+                Coords.SerializationHandler ACoordHandler,
+                bool APropagateDispose = false)
+                : base(ABaseStream, APropagateDispose)
             {
-                if (ABaseStream == null)
-                    throw new ArgumentNullException("ABaseStream");
                 if (ACoordHandler == null)
                     throw new ArgumentNullException("ACoordHandler");
 
-                this.FBaseStream = ABaseStream;
                 this.FCoordHandler = ACoordHandler;
             }
             public SerializationHandler(
@@ -57,6 +55,13 @@ namespace VoxelMash.Grids
             }
             public int Write(SparseChunkOctree AOctree)
             {
+                /* Start with first terminal in sort order.
+                 * 1. Emit coords + material.
+                 * 2. for each next node
+                 *   - express path to next via horizontal (and vertical move)
+                 *   - emit material
+                 */
+
                 this.FBaseStream.WriteInt32(AOctree.TerminalCount);
                 int iCount = 4;
                 foreach (C5.KeyValuePair<Coords, ushort> kvpPair in AOctree.FTerminals)
@@ -69,10 +74,6 @@ namespace VoxelMash.Grids
                 return iCount;
             }
 
-            public Stream BaseStream
-            {
-                get { return this.FBaseStream; }
-            }
             public Coords.SerializationHandler CoordHandler
             {
                 get { return this.FCoordHandler; }
