@@ -376,7 +376,7 @@ namespace VoxelMash.Grids
         {
             int iOutOfRange = (this.FShift > 8 ? 1 : 0) - (AOther.FShift > 8 ? 1 : 0);
             if (iOutOfRange != 0)
-                return -iOutOfRange;
+                return iOutOfRange;
 
             int iThis = (this.FZ << 16 | this.FY << 8 | this.FX) << this.FShift;
             int iOther = (AOther.FZ << 16 | AOther.FY << 8 | AOther.FX) << AOther.FShift;
