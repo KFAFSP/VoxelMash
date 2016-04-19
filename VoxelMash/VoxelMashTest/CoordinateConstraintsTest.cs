@@ -111,25 +111,47 @@ namespace VoxelMashTest
         }
 
         [TestMethod]
-        public void MoveNext()
+        public void MoveRight()
         {
             // Constraint 1 : voxels should return their siblings.
             Trace.WriteLine("Constraint 1 : moving between siblings.");
             Assert.AreEqual(
                 new Coords(0, 1, 0, 0),
-                new Coords(0, 0, 0, 0).GetSuccessor());
+                new Coords(0, 0, 0, 0).GetRight());
 
             // Constraint 2 : upwards propagation.
             Trace.WriteLine("Constraint 2 : upward propagation.");
             Assert.AreEqual(
                 new Coords(1, 1, 0, 0),
-                new Coords(0, 1, 1, 1).GetSuccessor());
+                new Coords(0, 1, 1, 1).GetRight());
 
             // Constraint 3 : last voxel should return out of range.
             Trace.WriteLine("Constraint 3 : out of range.");
             Assert.AreEqual(
                 Coords.OutOfRange,
-                Coords.LastVoxel.GetSuccessor());
+                Coords.LastVoxel.GetRight());
+        }
+
+        [TestMethod]
+        public void MoveLeft()
+        {
+            // Constraint 1 : voxels should return their siblings.
+            Trace.WriteLine("Constraint 1 : moving between siblings.");
+            Assert.AreEqual(
+                new Coords(0, 0, 1, 1),
+                new Coords(0, 1, 1, 1).GetLeft());
+
+            // Constraint 2 : upwards propagation.
+            Trace.WriteLine("Constraint 2 : upward propagation.");
+            Assert.AreEqual(
+                new Coords(1, 0, 0, 0),
+                new Coords(0, 2, 0, 0).GetLeft());
+
+            // Constraint 3 : first voxel should return out of range.
+            Trace.WriteLine("Constraint 3 : out of range.");
+            Assert.AreEqual(
+                Coords.OutOfRange,
+                Coords.FirstVoxel.GetLeft());
         }
 
         [TestMethod]
