@@ -3,13 +3,13 @@ using System.IO;
 
 namespace VoxelMash.Serialization
 {
-    public abstract class StreamAdapter : IDisposable
+    public abstract class StreamAdapter : Stream, IDisposable
     {
         private bool FDisposed;
         private bool FPropagateDispose;
         protected readonly Stream FBaseStream;
 
-        public StreamAdapter(
+        protected StreamAdapter(
             Stream ABaseStream,
             bool APropagateDispose = false)
         {
@@ -23,20 +23,18 @@ namespace VoxelMash.Serialization
         }
 
         #region IDisposable
-        protected virtual void Dispose(bool ADisposing)
+        protected override void Dispose(bool ADisposing)
         {
             if (this.FDisposed)
-                return;
+                throw new ObjectDisposedException("StreamAdapter");
+
+            base.Dispose(ADisposing);
 
             this.FDisposed = true;
             if (this.FPropagateDispose)
                 this.FBaseStream.Dispose();
         }
-        public void Dispose()
-        {
-            this.Dispose(true);
-        }
-
+        
         public bool IsDisposed
         {
             get { return this.FDisposed; }
@@ -51,6 +49,58 @@ namespace VoxelMash.Serialization
         public Stream BaseStream
         {
             get { return this.FBaseStream; }
+        }
+
+        public override bool CanRead
+        {
+            get { return this.FBaseStream.CanRead; }
+        }
+        public override bool CanSeek
+        {
+            get { return this.FBaseStream.CanSeek; }
+        }
+        public override bool CanWrite
+        {
+            get { return this.FBaseStream.CanWrite; }
+        }
+
+        public override void Flush()
+        {
+            this.FBaseStream.Flush();
+        }
+
+        public override long Length
+        {
+            get { return this.FBaseStream.Length; }
+        }
+
+        public override long Position
+        {
+            get { return this.FBaseStream.Position; }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            throw new NotImplementedException();
         }
     }
 }

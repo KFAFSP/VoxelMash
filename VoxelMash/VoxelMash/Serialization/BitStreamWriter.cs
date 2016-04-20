@@ -62,6 +62,11 @@ namespace VoxelMash.Serialization
             return iWritten;
         }
 
+        public void WriteByte(byte AByte)
+        {
+            this.WriteBits(AByte, 8);
+        }
+
         public byte BitPos
         {
             get { return (byte)(8 - this.FShift); }

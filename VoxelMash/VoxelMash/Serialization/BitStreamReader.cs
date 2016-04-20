@@ -47,6 +47,13 @@ namespace VoxelMash.Serialization
             return iRead;
         }
 
+        public byte ReadByte()
+        {
+            int iRead;
+            this.ReadBits(8, out iRead);
+            return iRead;
+        }
+
         public byte BitPos
         {
             get { return (byte)(7 - this.FShift); }

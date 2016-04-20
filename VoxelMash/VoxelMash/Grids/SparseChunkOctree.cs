@@ -16,42 +16,17 @@ namespace VoxelMash.Grids
     {
         public sealed class SerializationHandler : StreamAdapter
         {
-            private readonly Coords.SerializationHandler FCoordHandler;
-
             public SerializationHandler(
                 Stream ABaseStream,
-                Coords.SerializationHandler ACoordHandler,
                 bool APropagateDispose = false)
                 : base(ABaseStream, APropagateDispose)
-            {
-                if (ACoordHandler == null)
-                    throw new ArgumentNullException("ACoordHandler");
-
-                this.FCoordHandler = ACoordHandler;
-            }
-            public SerializationHandler(
-                Stream ABaseStream,
-                bool AAllowPacking = true)
-                : this(ABaseStream, new Coords.SerializationHandler(ABaseStream, AAllowPacking))
             { }
 
             public int Read(SparseChunkOctree AOctree)
             {
                 AOctree.Clear();
 
-                int iTerminals = this.FBaseStream.ReadInt32();
-                int iCount = 4;
-                while (iTerminals > 0)
-                {
-                    iTerminals--;
-                    Coords cCoords;
-                    iCount += this.FCoordHandler.Read(out cCoords);
-                    ushort nValue = this.FBaseStream.ReadUInt16();
-                    iCount += 2;
-                    AOctree.FTerminals.Add(cCoords, nValue);
-                }
-
-                return iCount;
+                
             }
             public int Write(SparseChunkOctree AOctree)
             {
@@ -62,21 +37,12 @@ namespace VoxelMash.Grids
                  *   - emit material
                  */
 
-                this.FBaseStream.WriteInt32(AOctree.TerminalCount);
-                int iCount = 4;
-                foreach (C5.KeyValuePair<Coords, ushort> kvpPair in AOctree.FTerminals)
-                {
-                    iCount += this.FCoordHandler.Write(kvpPair.Key);
-                    this.FBaseStream.WriteUInt16(kvpPair.Value);
-                    iCount += 2;
-                }
+                int iCount = 0;
+                BitStreamWriter bswWriter = new BitStreamWriter(this.FBaseStream);
+
+                
 
                 return iCount;
-            }
-
-            public Coords.SerializationHandler CoordHandler
-            {
-                get { return this.FCoordHandler; }
             }
         }
 
