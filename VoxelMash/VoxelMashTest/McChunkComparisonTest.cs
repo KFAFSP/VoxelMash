@@ -18,86 +18,82 @@ namespace VoxelMashTest
         [TestMethod]
         public void Convert()
         {
-            int iLevel = 0;
-            do
+            for (int iSlice = 0; iSlice < 6; iSlice++)
             {
-                string sPrefix = String.Format(@".\world_chunks\y{0}_", iLevel);
-                if (!File.Exists(sPrefix + "blocks"))
-                    break;
+                string sPrefix = String.Format(@".\world_chunks\y{0}_", iSlice);
 
-                SparseChunkOctree scoThis = new SparseChunkOctree();
-
-                FileStream fsMcCompressed = new FileStream(sPrefix + "mcall.gzip", FileMode.Create, FileAccess.Write);
-                GZipStream gszMcCompress = new GZipStream(fsMcCompressed, CompressionMode.Compress, true);
-
-                FileStream fsBlocks = new FileStream(sPrefix + "blocks", FileMode.Open, FileAccess.Read);
-                FileStream fsMeta = new FileStream(sPrefix + "meta", FileMode.Open, FileAccess.Read);
-                FileStream fsAdd = null;
-                if (File.Exists(sPrefix + "add"))
-                    fsAdd = new FileStream(sPrefix + "add", FileMode.Open, FileAccess.Read);
-
-                byte bAddBuff = 0x00;
-                byte bMetaBuff = 0x00;
-                bool bAdvSupplements = true;
-
+                SparseChunkOctree scoOctree = new SparseChunkOctree();
                 int iBalance = 0;
-                for (byte bX = 0; bX < 16; bX++)
-                    for (byte bZ = 0; bZ < 16; bZ++)
-                        for (byte bY = 0; bY < 16; bY++)
+
+                FileStream fsCompressedMats = new FileStream(sPrefix + "mats.gzip", FileMode.Create, FileAccess.Write);
+                GZipStream gzsCompressedMats = new GZipStream(fsCompressedMats, CompressionLevel.Fastest, true);
+
+                using (FileStream fsBlockIDs = new FileStream(sPrefix + "blocks", FileMode.Open, FileAccess.Read))
+                using (FileStream fsMetaData = new FileStream(sPrefix + "meta", FileMode.Open, FileAccess.Read))
+                {
+                    FileStream fsBlockAdd = null;
+                    if (File.Exists(sPrefix + "add"))
+                        fsBlockAdd = new FileStream(sPrefix + "add", FileMode.Open, FileAccess.Read);
+
+                    byte bCarryMeta = 0x0;
+                    byte bCarryAdd = 0x0;
+                    for (int I = 0; I < 0xFFF; I++)
+                    {
+                        byte bBlock = fsBlockIDs.SafeReadByte();
+                        byte bMeta, bAdd;
+
+                        if (I%2 == 0)
                         {
-                            byte bBlockId = fsBlocks.SafeReadByte();
-                            gszMcCompress.WriteByte(bBlockId);
-                            byte bMetaData;
-                            byte bAddData;
+                            bCarryMeta = fsMetaData.SafeReadByte();
+                            bCarryAdd = fsBlockAdd != null ? fsBlockAdd.SafeReadByte() : (byte)0x00;
 
-                            if (bAdvSupplements)
-                            {
-                                bAdvSupplements = false;
-                                bAddBuff = fsAdd == null ? (byte)0x00 : fsAdd.SafeReadByte();
-                                bMetaBuff = fsMeta.SafeReadByte();
-
-                                gszMcCompress.WriteByte(bAddBuff);
-                                gszMcCompress.WriteByte(bMetaBuff);
-
-                                bMetaData = (byte)(bMetaBuff >> 4);
-                                bAddData = (byte)(bAddBuff >> 4);
-                            }
-                            else
-                            {
-                                bMetaData = (byte)(bMetaBuff & 0x0F);
-                                bAddData = (byte)(bAddBuff & 0x0F);
-                            }
-
-                            ushort nMaterial = (ushort)(bMetaData | (bBlockId << 4) | (bAddData << 12));
-                            scoThis.Set(new Coords(4, bX, bY, bZ), nMaterial, ref iBalance);
+                            bMeta = (byte)(bCarryMeta >> 4);
+                            bAdd = (byte)(bCarryAdd >> 4);
+                        }
+                        else
+                        {
+                            bMeta = bCarryMeta;
+                            bAdd = bCarryAdd;
                         }
 
-                Trace.WriteLine(String.Format("Loaded slice {0}, Balance was {1}, {2} Terminals.", iLevel, iBalance, scoThis.TerminalCount));
+                        byte bY = (byte)(I%16);
+                        byte bZ = (byte)((I/16)%16);
+                        byte bX = (byte)((I/256)%16);
 
-                long nMcSize = fsBlocks.Position + fsMeta.Position + (fsAdd != null ? fsAdd.Position : 0);
-                gszMcCompress.Close();
-                long nMcCompressed = fsMcCompressed.Length;
-                fsMcCompressed.Close();
+                        ushort nMaterial = (ushort)((bAdd << 12) | (bMeta << 8) | bBlock);
+                        gzsCompressedMats.WriteUInt16(nMaterial);
+                        scoOctree.Set(new Coords(4, bX, bY, bZ), nMaterial, ref iBalance);
+                    }
+                }
 
-                fsBlocks.Close();
-                fsMeta.Close();
-                if (fsAdd != null)
-                    fsAdd.Close();
+                gzsCompressedMats.Close();
 
-                FileStream fsWrite = new FileStream(sPrefix + "materials.sco.gzip", FileMode.Create, FileAccess.Write);
-                GZipStream gzsScoCompressed = new GZipStream(fsWrite, CompressionMode.Compress, true);
+                Debug.WriteLine("Converted slice {0}.", iSlice);
+                Debug.WriteLine("Amounted to {0} terminals with volume {1}.", scoOctree.TerminalCount, iBalance);
+                Debug.WriteLine("Materials compressed to {0}B ({1:F2}% gzip compression).",
+                    fsCompressedMats.Length,
+                    100.0d - ((double)fsCompressedMats.Length / 8192.0d * 100.0d));
+
+                fsCompressedMats.Close();
+
+                FileStream fsCompressedOctree = new FileStream(sPrefix + "octree.gzip", FileMode.Create, FileAccess.Write);
+                GZipStream gzsCompressedOctree = new GZipStream(fsCompressedOctree, CompressionLevel.Fastest, true);
+
+                MemoryStream msUncompressedOctree = new MemoryStream();
+
                 SparseChunkOctree.SerializationHandler shHandler = new SparseChunkOctree.SerializationHandler();
-                shHandler.Write(gszMcCompress, scoThis);
-                gzsScoCompressed.Close();
-                long nScoSize = fsWrite.Length;
-                fsWrite.Close();
+                shHandler.Write(msUncompressedOctree, scoOctree);
+                shHandler.Write(gzsCompressedOctree, scoOctree);
 
-                Trace.WriteLine(String.Format("MC has {0} Bytes total, {1} Bytes compressed , SCO has {2} Bytes compressed.", nMcSize, nMcCompressed, nScoSize));
+                gzsCompressedOctree.Close();
 
-                iLevel++;
-            } while (true);
+                Debug.WriteLine("Octree compressed to {0}B ({1:F2}% gzip compression).",
+                    fsCompressedOctree.Length,
+                    100.0d - ((double)fsCompressedOctree.Length / (double)msUncompressedOctree.Length * 100.0d));
 
-            Assert.IsTrue(iLevel > 0);
+                msUncompressedOctree.Dispose();
+                fsCompressedOctree.Close();
+            }
         }
     }
 }

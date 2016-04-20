@@ -46,19 +46,19 @@ namespace VoxelMash.Grids
                         iRead += bsrReader.ReadBits(1, out iBuffer);
                         if (iBuffer == 0x1)
                         {
-                            iRead += bsrReader.ReadBits(3, out iBuffer);
-                            cPointer.StepDown((byte)iBuffer);
+                            iRead += bsrReader.ReadBits(2, out iBuffer);
+                            iRead += bsrReader.ReadBits((byte)((iBuffer + 1) * 4), out iBuffer);
+
+                            AOctree.FTerminals.Add(cPointer, (ushort)iBuffer);
+                            cPointer.MoveRight();
                             continue;
                         }
 
                         iRead += bsrReader.ReadBits(1, out iBuffer);
                         if (iBuffer == 0x1)
                         {
-                            iRead += bsrReader.ReadBits(2, out iBuffer);
-                            iRead += bsrReader.ReadBits((byte)((iBuffer + 1) * 4), out iBuffer);
-
-                            AOctree.FTerminals.Add(cPointer, (ushort)iBuffer);
-                            cPointer.MoveRight();
+                            iRead += bsrReader.ReadBits(3, out iBuffer);
+                            cPointer.StepDown((byte)iBuffer);
                             continue;
                         }
 
@@ -137,11 +137,11 @@ namespace VoxelMash.Grids
                         {
                             byte bPath = cCurrent.GetPath((byte)(cPointer.Shift - cCurrent.Shift - 1));
                             cPointer.StepDown(bPath);
-                            bswWriter.WriteBits(0x1, 1); // 1
+                            bswWriter.WriteBits(0x1, 2); // 01
                             bswWriter.WriteBits(bPath, 3);
                         }
 
-                        bswWriter.WriteBits(0x1, 2); // 01
+                        bswWriter.WriteBits(0x1, 1); // 1
                         nValue = ieTerminals.Current.Value;
                         if (nValue > 0xFFF)
                         {
