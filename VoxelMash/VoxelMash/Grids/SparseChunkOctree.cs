@@ -14,68 +14,35 @@ namespace VoxelMash.Grids
 {
     public class SparseChunkOctree : ChunkOctree
     {
-        public sealed class SerializationHandler
+        public sealed class SerializationHandler : StreamAdapter
         {
-            private readonly Stream FBaseStream;
-            private readonly Coords.SerializationHandler FCoordHandler;
-
             public SerializationHandler(
                 Stream ABaseStream,
-                Coords.SerializationHandler ACoordHandler)
-            {
-                if (ABaseStream == null)
-                    throw new ArgumentNullException("ABaseStream");
-                if (ACoordHandler == null)
-                    throw new ArgumentNullException("ACoordHandler");
-
-                this.FBaseStream = ABaseStream;
-                this.FCoordHandler = ACoordHandler;
-            }
-            public SerializationHandler(
-                Stream ABaseStream,
-                bool AAllowPacking = true)
-                : this(ABaseStream, new Coords.SerializationHandler(ABaseStream, AAllowPacking))
+                bool APropagateDispose = false)
+                : base(ABaseStream, APropagateDispose)
             { }
 
             public int Read(SparseChunkOctree AOctree)
             {
                 AOctree.Clear();
 
-                int iTerminals = this.FBaseStream.ReadInt32();
-                int iCount = 4;
-                while (iTerminals > 0)
-                {
-                    iTerminals--;
-                    Coords cCoords;
-                    iCount += this.FCoordHandler.Read(out cCoords);
-                    ushort nValue = this.FBaseStream.ReadUInt16();
-                    iCount += 2;
-                    AOctree.FTerminals.Add(cCoords, nValue);
-                }
-
-                return iCount;
+                
             }
             public int Write(SparseChunkOctree AOctree)
             {
-                this.FBaseStream.WriteInt32(AOctree.TerminalCount);
-                int iCount = 4;
-                foreach (C5.KeyValuePair<Coords, ushort> kvpPair in AOctree.FTerminals)
-                {
-                    iCount += this.FCoordHandler.Write(kvpPair.Key);
-                    this.FBaseStream.WriteUInt16(kvpPair.Value);
-                    iCount += 2;
-                }
+                /* Start with first terminal in sort order.
+                 * 1. Emit coords + material.
+                 * 2. for each next node
+                 *   - express path to next via horizontal (and vertical move)
+                 *   - emit material
+                 */
+
+                int iCount = 0;
+                BitStreamWriter bswWriter = new BitStreamWriter(this.FBaseStream);
+
+                
 
                 return iCount;
-            }
-
-            public Stream BaseStream
-            {
-                get { return this.FBaseStream; }
-            }
-            public Coords.SerializationHandler CoordHandler
-            {
-                get { return this.FCoordHandler; }
             }
         }
 

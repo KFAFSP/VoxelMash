@@ -51,6 +51,9 @@
     <Compile Include="Grids\GridSpaceCoordinates.cs" />
     <Compile Include="Grids\SparseChunkOctree.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Serialization\BitStreamReader.cs" />
+    <Compile Include="Serialization\BitStreamWriter.cs" />
+    <Compile Include="Serialization\StreamAdapter.cs" />
     <Compile Include="Serialization\StreamReadingExtensions.cs" />
     <Compile Include="Serialization\StreamWritingExtensions.cs" />
   </ItemGroup>

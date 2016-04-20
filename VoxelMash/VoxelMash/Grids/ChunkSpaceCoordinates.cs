@@ -11,19 +11,16 @@ namespace VoxelMash.Grids
         IEquatable<ChunkSpaceCoordinates>,
         IComparable<ChunkSpaceCoordinates>
     {
-        public sealed class SerializationHandler
+        public sealed class SerializationHandler : StreamAdapter
         {
-            private readonly Stream FBaseStream;
             private bool FAllowPacking;
 
             public SerializationHandler(
                 Stream ABaseStream,
-                bool AAllowPacking = true)
+                bool AAllowPacking = true,
+                bool APropagateDispose = false)
+                : base(ABaseStream, APropagateDispose)
             {
-                if (ABaseStream == null)
-                    throw new ArgumentNullException("ABaseStream");
-
-                this.FBaseStream = ABaseStream;
                 this.FAllowPacking = AAllowPacking;
             }
 
@@ -156,10 +153,6 @@ namespace VoxelMash.Grids
                 return 4;
             }
 
-            public Stream BaseStream
-            {
-                get { return this.FBaseStream; }
-            }
             public bool AllowPacking
             {
                 get { return this.FAllowPacking; }
@@ -173,6 +166,10 @@ namespace VoxelMash.Grids
         public static ChunkSpaceCoordinates Root
         {
             get { return new ChunkSpaceCoordinates(8, 0, 0, 0); }
+        }
+        public static ChunkSpaceCoordinates FirstVoxel
+        {
+            get { return new ChunkSpaceCoordinates(0, 0, 0, 0); }
         }
         public static ChunkSpaceCoordinates LastVoxel
         {
@@ -243,6 +240,47 @@ namespace VoxelMash.Grids
                 this.FZ |= 0x01;
             else
                 this.FZ &= 0xFE;
+        }
+
+        public void MoveRight()
+        {
+            do
+            {
+                if (this.FShift == 8)
+                {
+                    this.FShift = 9;
+                    return;
+                }
+
+                byte bPath = this.GetPath();
+                if (bPath < 0x7)
+                {
+                    this.SetPath((byte)(bPath + 1));
+                    return;
+                }
+
+                this.StepUp();
+            } while (true);
+        }
+        public void MoveLeft()
+        {
+            do
+            {
+                if (this.FShift == 8)
+                {
+                    this.FShift = 9;
+                    return;
+                }
+
+                byte bPath = this.GetPath();
+                if (bPath > 0x0)
+                {
+                    this.SetPath((byte)(bPath - 1));
+                    return;
+                }
+
+                this.StepUp();
+            } while (true);
         }
 
         #region Pure methods
@@ -343,6 +381,21 @@ namespace VoxelMash.Grids
             cscParent.StepUp(AOrder);
             return cscParent;
         }
+
+        [Pure]
+        public ChunkSpaceCoordinates GetRight()
+        {
+            ChunkSpaceCoordinates cscRight = this;
+            cscRight.MoveRight();
+            return cscRight;
+        }
+        [Pure]
+        public ChunkSpaceCoordinates GetLeft()
+        {
+            ChunkSpaceCoordinates cscLeft = this;
+            cscLeft.MoveLeft();
+            return cscLeft;
+        }
         #endregion
 
         #region System.Object overrides
@@ -378,7 +431,7 @@ namespace VoxelMash.Grids
         {
             int iOutOfRange = (this.FShift > 8 ? 1 : 0) - (AOther.FShift > 8 ? 1 : 0);
             if (iOutOfRange != 0)
-                return -iOutOfRange;
+                return iOutOfRange;
 
             int iThis = (this.FZ << 16 | this.FY << 8 | this.FX) << this.FShift;
             int iOther = (AOther.FZ << 16 | AOther.FY << 8 | AOther.FX) << AOther.FShift;
