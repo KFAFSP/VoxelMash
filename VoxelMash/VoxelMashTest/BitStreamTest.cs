@@ -30,13 +30,13 @@ namespace VoxelMashTest
             //    2 D       7E
             // 0010 1101 0111 1110
             MemoryStream msTest = new MemoryStream();
-            BitStreamWriter bsrReader = new BitStreamWriter(msTest, true);
+            BitStreamWriter bswWriter = new BitStreamWriter(msTest, true);
 
-            bsrReader.WriteBits(0x2D7E, 16);
+            bswWriter.WriteBits(0x2D7E, 16);
             Assert.AreEqual(0x2D, msTest.GetBuffer()[0]);
             Assert.AreEqual(0x7E, msTest.GetBuffer()[1]);
 
-            bsrReader.Dispose();
+            bswWriter.Dispose();
         }
     }
 }

@@ -47,7 +47,6 @@ namespace VoxelMashTest
                 scoOctree.Set(cBlock, 1, ref iDiscard);
 
             MemoryStream msTest = new MemoryStream();
-            // ReSharper disable once RedundantArgumentDefaultValue
             SparseChunkOctree.SerializationHandler shHandler = new SparseChunkOctree.SerializationHandler();
             shHandler.Write(msTest, scoOctree);
 

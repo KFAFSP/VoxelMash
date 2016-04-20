@@ -159,6 +159,12 @@ namespace VoxelMash.Grids
             }
         }
 
+        private static readonly SerializationHandler _FPackedHandler = new SerializationHandler(true);
+        public static SerializationHandler PackedHandler
+        {
+            get { return ChunkSpaceCoordinates._FPackedHandler; }
+        }
+
         public const byte C_ChunkSize = 0xFF;
 
         #region Special coordinate constants
@@ -255,26 +261,6 @@ namespace VoxelMash.Grids
                 if (bPath < 0x7)
                 {
                     this.SetPath((byte)(bPath + 1));
-                    return;
-                }
-
-                this.StepUp();
-            } while (true);
-        }
-        public void MoveLeft()
-        {
-            do
-            {
-                if (this.FShift == 8)
-                {
-                    this.FShift = 9;
-                    return;
-                }
-
-                byte bPath = this.GetPath();
-                if (bPath > 0x0)
-                {
-                    this.SetPath((byte)(bPath - 1));
                     return;
                 }
 
@@ -387,13 +373,6 @@ namespace VoxelMash.Grids
             ChunkSpaceCoordinates cscRight = this;
             cscRight.MoveRight();
             return cscRight;
-        }
-        [Pure]
-        public ChunkSpaceCoordinates GetLeft()
-        {
-            ChunkSpaceCoordinates cscLeft = this;
-            cscLeft.MoveLeft();
-            return cscLeft;
         }
         #endregion
 
