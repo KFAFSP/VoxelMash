@@ -3,7 +3,7 @@ using System.IO;
 
 namespace VoxelMash.Serialization
 {
-    public abstract class StreamAdapter : Stream, IDisposable
+    public abstract class StreamAdapter : Stream
     {
         private bool FDisposed;
         private bool FPropagateDispose;
@@ -41,16 +41,7 @@ namespace VoxelMash.Serialization
         }
         #endregion
 
-        public bool PropagateDispose
-        {
-            get { return this.FPropagateDispose; }
-            set { this.FPropagateDispose = value; }
-        }
-        public Stream BaseStream
-        {
-            get { return this.FBaseStream; }
-        }
-
+        #region Stream
         public override bool CanRead
         {
             get { return this.FBaseStream.CanRead; }
@@ -64,43 +55,30 @@ namespace VoxelMash.Serialization
             get { return this.FBaseStream.CanWrite; }
         }
 
-        public override void Flush()
-        {
-            this.FBaseStream.Flush();
-        }
-
         public override long Length
         {
             get { return this.FBaseStream.Length; }
         }
-
         public override long Position
         {
             get { return this.FBaseStream.Position; }
-            set
-            {
-                throw new NotImplementedException();
-            }
+            set { this.Seek(value, SeekOrigin.Begin); }
         }
 
-        public override int Read(byte[] buffer, int offset, int count)
+        public override void SetLength(long AValue)
         {
-            throw new NotImplementedException();
+            this.FBaseStream.SetLength(AValue);
         }
+        #endregion
 
-        public override long Seek(long offset, SeekOrigin origin)
+        public bool PropagateDispose
         {
-            throw new NotImplementedException();
+            get { return this.FPropagateDispose; }
+            set { this.FPropagateDispose = value; }
         }
-
-        public override void SetLength(long value)
+        public Stream BaseStream
         {
-            throw new NotImplementedException();
-        }
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            throw new NotImplementedException();
+            get { return this.FBaseStream; }
         }
     }
 }

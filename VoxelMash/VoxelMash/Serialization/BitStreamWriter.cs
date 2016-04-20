@@ -13,9 +13,10 @@ namespace VoxelMash.Serialization
             bool APropagateDispose = false)
             : base(ABaseStream, APropagateDispose)
         {
-            this.Reset();
+            this.ResetBitPos();
         }
 
+        #region IDisposable
         protected override void Dispose(bool ADisposing)
         {
             if (ADisposing)
@@ -23,27 +24,27 @@ namespace VoxelMash.Serialization
 
             base.Dispose(ADisposing);
         }
+        #endregion
 
-        public void Reset()
+        protected void ResetBitPos()
         {
             this.FBuffer = 0x00;
             this.FShift = 8;
         }
-        public void FinalizeByte()
+        protected void FinalizeByte()
         {
             if (this.FShift < 8)
             {
                 this.FBaseStream.WriteByte(this.FBuffer);
-                this.Reset();
+                this.ResetBitPos();
             }
         }
 
-        public int WriteBits(int ABits, byte ACount)
+        public void WriteBits(int ABits, byte ACount)
         {
             if (ACount > 32)
                 throw new ArgumentOutOfRangeException("ACount");
 
-            int iWritten = 0;
             while (ACount > 0)
             {
                 ACount--;
@@ -53,19 +54,42 @@ namespace VoxelMash.Serialization
                 if (this.FShift == 0)
                 {
                     this.FBaseStream.WriteByte(this.FBuffer);
-                    iWritten++;
                     this.FBuffer = 0x00;
                     this.FShift = 8;
                 }
             }
-
-            return iWritten;
         }
 
-        public void WriteByte(byte AByte)
+        #region Stream
+        public override int Read(byte[] ABuffer, int AOffset, int ACount)
         {
-            this.WriteBits(AByte, 8);
+            throw new NotSupportedException();
         }
+        public override void Write(byte[] ABuffer, int AOffset, int ACount)
+        {
+            for (int I = 0; I < ACount; I++)
+            {
+                int iWrite = 0x00000000 | ABuffer[AOffset + I];
+                this.WriteBits(iWrite, 8);
+            }
+        }
+        public override long Seek(long AOffset, SeekOrigin AOrigin)
+        {
+            long iPos = this.FBaseStream.Seek(AOffset, AOrigin);
+            this.ResetBitPos();
+            return iPos;
+        }
+        public override void Flush()
+        {
+            this.FinalizeByte();
+            this.FBaseStream.Flush();
+        }
+
+        public override bool CanRead
+        {
+            get { return false; }
+        }
+        #endregion
 
         public byte BitPos
         {

@@ -86,8 +86,8 @@ namespace VoxelMashTest
 
                 FileStream fsWrite = new FileStream(sPrefix + "materials.sco.gzip", FileMode.Create, FileAccess.Write);
                 GZipStream gzsScoCompressed = new GZipStream(fsWrite, CompressionMode.Compress, true);
-                SparseChunkOctree.SerializationHandler shHandler = new SparseChunkOctree.SerializationHandler(gzsScoCompressed, true);
-                shHandler.Write(scoThis);
+                SparseChunkOctree.SerializationHandler shHandler = new SparseChunkOctree.SerializationHandler();
+                shHandler.Write(gszMcCompress, scoThis);
                 gzsScoCompressed.Close();
                 long nScoSize = fsWrite.Length;
                 fsWrite.Close();

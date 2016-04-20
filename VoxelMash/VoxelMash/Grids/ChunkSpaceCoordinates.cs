@@ -11,30 +11,28 @@ namespace VoxelMash.Grids
         IEquatable<ChunkSpaceCoordinates>,
         IComparable<ChunkSpaceCoordinates>
     {
-        public sealed class SerializationHandler : StreamAdapter
+        public sealed class SerializationHandler
         {
             private bool FAllowPacking;
 
-            public SerializationHandler(
-                Stream ABaseStream,
-                bool AAllowPacking = true,
-                bool APropagateDispose = false)
-                : base(ABaseStream, APropagateDispose)
+            public SerializationHandler(bool AAllowPacking = true)
             {
                 this.FAllowPacking = AAllowPacking;
             }
 
-            public int Read(out ChunkSpaceCoordinates ACoords)
+            public int Read(
+                Stream AInput,
+                out ChunkSpaceCoordinates ACoords)
             {
-                byte bFirst = this.FBaseStream.SafeReadByte();
+                byte bFirst = AInput.SafeReadByte();
 
                 if ((bFirst & 0xF0) == 0x80)
                 {
                     // Full length.
                     ACoords.FShift = (byte)(bFirst & 0x0F);                   
-                    ACoords.FZ = this.FBaseStream.SafeReadByte();
-                    ACoords.FY = this.FBaseStream.SafeReadByte();
-                    ACoords.FX = this.FBaseStream.SafeReadByte();
+                    ACoords.FZ = AInput.SafeReadByte();
+                    ACoords.FY = AInput.SafeReadByte();
+                    ACoords.FX = AInput.SafeReadByte();
                     return 4;
                 }
                 
@@ -72,7 +70,7 @@ namespace VoxelMash.Grids
                     return 1;
                 }
 
-                byte bSecond = this.FBaseStream.SafeReadByte();
+                byte bSecond = AInput.SafeReadByte();
                 if (bMagic <= 0x40)
                 {
                     // Up to blocks.
@@ -84,14 +82,16 @@ namespace VoxelMash.Grids
                 }
 
                 // Excluding voxel.
-                byte bThird = this.FBaseStream.SafeReadByte();
+                byte bThird = AInput.SafeReadByte();
                 ACoords.FShift = (byte)(8 - (bFirst >> 5));
                 ACoords.FZ = (byte)(((bFirst & 0x1F) << 2) | (bSecond >> 6));
                 ACoords.FY = (byte)(((bSecond & 0x3F) << 1) | (bThird >> 7));
                 ACoords.FX = (byte)(bThird & 0x7F);
                 return 3;
             }
-            public int Write(ChunkSpaceCoordinates ACoords)
+            public void Write(
+                Stream AOutput,
+                ChunkSpaceCoordinates ACoords)
             {
                 if (this.FAllowPacking && ACoords.FShift != 0)
                 {
@@ -101,56 +101,55 @@ namespace VoxelMash.Grids
                         case 2:
                         case 3:
                             // Excluding voxels.
-                            this.FBaseStream.WriteByte(
+                            AOutput.WriteByte(
                                 (byte)(((8 - ACoords.FShift) << 5)
                                        | (ACoords.FZ >> 2)));
-                            this.FBaseStream.WriteByte(
+                            AOutput.WriteByte(
                                 (byte)(((ACoords.FZ & 0x3) << 6)
                                        | (ACoords.FY >> 1)));
-                            this.FBaseStream.WriteByte(
+                            AOutput.WriteByte(
                                 (byte)(((ACoords.FY & 0x1) << 7)
                                        | ACoords.FX));
-                            return 3;
+                            return;
 
                         case 4:
                         case 5:
                         case 6:
                             // Up to blocks.
-                            this.FBaseStream.WriteByte(
+                            AOutput.WriteByte(
                                 (byte)(((8 - ACoords.FShift) << 4)
                                        | ACoords.FZ));
-                            this.FBaseStream.WriteByte(
+                            AOutput.WriteByte(
                                 (byte)((ACoords.FY << 4)
                                        | ACoords.FX));
-                            return 2;
+                            return;
 
                         case 7:
                             // Large block group.
-                            this.FBaseStream.WriteByte(
+                            AOutput.WriteByte(
                                 (byte)(0x1
                                        | (ACoords.FZ << 2)
                                        | (ACoords.FY << 1)
                                        | ACoords.FX));
-                            return 1;
+                            return;
 
                         case 8:
                             // Chunk.
-                            this.FBaseStream.WriteByte(0x00);
-                            return 1;
+                            AOutput.WriteByte(0x00);
+                            return;
 
                         default:
                             // Out of range.
-                            this.FBaseStream.WriteByte(0x60);
-                            return 1;
+                            AOutput.WriteByte(0x60);
+                            return;
                     }
                 }
 
                 // Anything.
-                this.FBaseStream.WriteByte((byte)(0x80 | ACoords.FShift));
-                this.FBaseStream.WriteByte(ACoords.FZ);
-                this.FBaseStream.WriteByte(ACoords.FY);
-                this.FBaseStream.WriteByte(ACoords.FX);
-                return 4;
+                AOutput.WriteByte((byte)(0x80 | ACoords.FShift));
+                AOutput.WriteByte(ACoords.FZ);
+                AOutput.WriteByte(ACoords.FY);
+                AOutput.WriteByte(ACoords.FX);
             }
 
             public bool AllowPacking

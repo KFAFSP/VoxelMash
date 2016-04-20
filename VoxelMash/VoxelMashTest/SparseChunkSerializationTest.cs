@@ -38,7 +38,7 @@ namespace VoxelMashTest
         }
 
         [TestMethod]
-        public void Packed()
+        public void Serialize()
         {
             SparseChunkOctree scoOctree = new SparseChunkOctree();
 
@@ -48,11 +48,11 @@ namespace VoxelMashTest
 
             MemoryStream msTest = new MemoryStream();
             // ReSharper disable once RedundantArgumentDefaultValue
-            SparseChunkOctree.SerializationHandler shHandler = new SparseChunkOctree.SerializationHandler(msTest, true);
-            shHandler.Write(scoOctree);
+            SparseChunkOctree.SerializationHandler shHandler = new SparseChunkOctree.SerializationHandler();
+            shHandler.Write(msTest, scoOctree);
 
             msTest.Seek(0, SeekOrigin.Begin);
-            shHandler.Read(scoOctree);
+            shHandler.Read(msTest, scoOctree);
 
             foreach (Coords cBlock in SparseChunkSerializationTest._FRandomBlocks)
             {
@@ -61,31 +61,8 @@ namespace VoxelMashTest
                 scoOctree.Get(ref cCopy, out nValue);
                 Assert.AreEqual(1, nValue);
             }
-        }
 
-        [TestMethod]
-        public void Unpacked()
-        {
-            SparseChunkOctree scoOctree = new SparseChunkOctree();
-
-            int iDiscard = 0;
-            foreach (Coords cBlock in SparseChunkSerializationTest._FRandomBlocks)
-                scoOctree.Set(cBlock, 1, ref iDiscard);
-
-            MemoryStream msTest = new MemoryStream();
-            SparseChunkOctree.SerializationHandler shHandler = new SparseChunkOctree.SerializationHandler(msTest, false);
-            shHandler.Write(scoOctree);
-
-            msTest.Seek(0, SeekOrigin.Begin);
-            shHandler.Read(scoOctree);
-
-            foreach (Coords cBlock in SparseChunkSerializationTest._FRandomBlocks)
-            {
-                Coords cCopy = cBlock;
-                ushort nValue;
-                scoOctree.Get(ref cCopy, out nValue);
-                Assert.AreEqual(1, nValue);
-            }
+            msTest.Dispose();
         }
     }
 }

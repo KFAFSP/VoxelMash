@@ -13,10 +13,10 @@ namespace VoxelMash.Serialization
             bool APropagateDispose = false)
             : base(ABaseStream, APropagateDispose)
         {
-            this.Reset();
+            this.ResetBitPos();
         }
 
-        public void Reset()
+        protected void ResetBitPos()
         {
             this.FBuffer = 0x00;
             this.FShift = 0;
@@ -34,8 +34,12 @@ namespace VoxelMash.Serialization
             {
                 if (this.FShift == 0)
                 {
+                    int iNew = this.FBaseStream.ReadByte();
+                    if (iNew == -1)
+                        return iRead;
+
                     this.FShift = 8;
-                    this.FBuffer = this.FBaseStream.SafeReadByte();
+                    this.FBuffer = (byte)iNew;
                     iRead++;
                 }
 
@@ -47,12 +51,39 @@ namespace VoxelMash.Serialization
             return iRead;
         }
 
-        public byte ReadByte()
+        #region Stream
+        public override int Read(byte[] ABuffer, int AOffset, int ACount)
         {
-            int iRead;
-            this.ReadBits(8, out iRead);
-            return iRead;
+            for (int I = 0; I < ACount; I++)
+            {
+                int iBits;
+                if (this.ReadBits(8, out iBits) != 8)
+                    return I;
+                ABuffer[AOffset + I] = (byte)(iBits & 0xFF);
+            }
+
+            return ACount;
         }
+        public override void Write(byte[] ABuffer, int AOffset, int ACount)
+        {
+            throw new NotSupportedException();
+        }
+        public override long Seek(long AOffset, SeekOrigin AOrigin)
+        {
+            long iPos = this.FBaseStream.Seek(AOffset, AOrigin);
+            this.ResetBitPos();
+            return iPos;
+        }
+        public override void Flush()
+        {
+            throw new NotSupportedException();
+        }
+
+        public override bool CanWrite
+        {
+            get { return false; }
+        }
+        #endregion
 
         public byte BitPos
         {

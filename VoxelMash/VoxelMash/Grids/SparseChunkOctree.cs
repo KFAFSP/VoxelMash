@@ -14,35 +14,19 @@ namespace VoxelMash.Grids
 {
     public class SparseChunkOctree : ChunkOctree
     {
-        public sealed class SerializationHandler : StreamAdapter
+        public class SerializationHandler
         {
-            public SerializationHandler(
-                Stream ABaseStream,
-                bool APropagateDispose = false)
-                : base(ABaseStream, APropagateDispose)
-            { }
-
-            public int Read(SparseChunkOctree AOctree)
+            public int Read(
+                Stream AInput,
+                SparseChunkOctree AOctree)
             {
-                AOctree.Clear();
-
-                
+                return 0;
             }
-            public int Write(SparseChunkOctree AOctree)
+            public void Write(
+                Stream AOutput,
+                SparseChunkOctree AOctree)
             {
-                /* Start with first terminal in sort order.
-                 * 1. Emit coords + material.
-                 * 2. for each next node
-                 *   - express path to next via horizontal (and vertical move)
-                 *   - emit material
-                 */
-
-                int iCount = 0;
-                BitStreamWriter bswWriter = new BitStreamWriter(this.FBaseStream);
-
                 
-
-                return iCount;
             }
         }
 
