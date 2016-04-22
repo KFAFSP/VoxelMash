@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using VoxelMash.Serialization;
 
-namespace VoxelMashTest
+namespace VoxelMashTest.Serialization
 {
     [TestClass]
     public class BitStreamTest

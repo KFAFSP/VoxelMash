@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Coords = VoxelMash.Grids.ChunkSpaceCoordinates;
 
-namespace VoxelMashTest
+namespace VoxelMashTest.Grids
 {
     [TestClass]
     public class CoordinateSerializationTest

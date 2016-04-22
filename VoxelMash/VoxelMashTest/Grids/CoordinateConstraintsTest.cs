@@ -6,9 +6,10 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using VoxelMash;
+
 using Coords = VoxelMash.Grids.ChunkSpaceCoordinates;
 
-namespace VoxelMashTest
+namespace VoxelMashTest.Grids
 {
     [TestClass]
     public class CoordinateConstraintsTest
