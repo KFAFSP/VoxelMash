@@ -278,67 +278,54 @@ namespace VoxelMash.Grids
         }
 
         /// <summary>
-        /// Moves to the previous node with the same shift.
+        /// Steps to a previous node of the same level.
         /// </summary>
-        /// <returns><c>true</c> if the previous node exists, <c>false</c> otherwise.</returns>
-        public bool Previous()
+        /// <param name="AAmount">The amount to move backward.</param>
+        /// <returns><c>true</c> if the operation succeeded, <c>false</c> if there was no predecessor.</returns>
+        public bool Previous(int AAmount = 1)
         {
-            if (this.FShift >= 8)
-                return false;
+            if (AAmount == 0) return true;
+            if (this.FShift >= 8) return false;
 
-            byte[] aPath = new byte[8 - this.FShift];
-            byte I = 0;
-
-            do
+            byte bPath = this.GetPath();
+            if (bPath >= AAmount)
             {
-                aPath[I] = this.GetPath();
-                if (aPath[I] > 0x0)
-                    break;
-                I++;
-                if (!this.StepUp() || this.FShift == 8)
-                    return false;
-            } while (true);
-
-            this.StepSibling((byte)(aPath[I] - 1));
-
-            while (I > 0)
-            {
-                this.StepDown(0x07);
-                I--;
+                this.StepSibling((byte)(bPath - AAmount));
+                return true;
             }
 
+            this.StepUp();
+            if (!this.Previous(AAmount < 8 ? 1 : AAmount / 8))
+                return false;
+
+            this.StepDown((byte)(8 - AAmount%8));
             return true;
         }
         /// <summary>
-        /// Moves to the next node with the same shift.
+        /// Steps to a next node of the same level.
         /// </summary>
-        /// <returns><c>true</c> if the next node exists, <c>false</c> otherwise.</returns>
-        public bool Next()
+        /// <param name="AAmount">The amount to move forward.</param>
+        /// <returns><c>true</c> if the operation succeeded, <c>false</c> if there was no successor.</returns>
+        public bool Next(int AAmount = 1)
         {
-            if (this.FShift >= 8)
-                return false;
+            if (AAmount == 0) return true;
+            if (this.FShift >= 8) return false;
 
-            byte[] aPath = new byte[8 - this.FShift];
-            byte I = 0;
-
-            do
+            byte bPath = this.GetPath();
+            if (0x07 - bPath >= AAmount)
             {
-                aPath[I] = this.GetPath();
-                if (aPath[I] < 0x7)
-                    break;
-                I++;
-                if (!this.StepUp() || this.FShift == 8)
-                    return false;
-            } while (true);
-
-            this.StepSibling((byte)(aPath[I] + 1));
-
-            while (I > 0)
-            {
-                this.StepDown(0x00);
-                I--;
+                this.StepSibling((byte)(bPath + AAmount));
+                return true;
             }
 
+            this.StepUp();          
+            if (!this.Next(AAmount < 8 ? 1 : AAmount/8))
+                return false;
+
+            if (AAmount < 8)
+                AAmount--;
+
+            this.StepDown((byte)(AAmount%8));
             return true;
         }
 

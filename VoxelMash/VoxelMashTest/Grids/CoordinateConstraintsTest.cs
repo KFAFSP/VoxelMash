@@ -168,6 +168,18 @@ namespace VoxelMashTest.Grids
             Assert.IsTrue(cTest.Previous());
             Assert.AreEqual(new Coords(0, 1, 1, 1), cTest);
 
+            // Example : multi stepping case.
+            Trace.WriteLine("Example 2 : multi stepping case.");
+            cTest = new Coords(0, 0, 0, 0);
+            cTest.Next(7);
+            Assert.AreEqual(new Coords(0, 1, 1, 1), cTest);
+            cTest.Next(9);
+            Assert.AreEqual(new Coords(0, 3, 0, 0), cTest);
+            cTest.Previous(9);
+            Assert.AreEqual(new Coords(0, 1, 1, 1), cTest);
+            cTest.Previous(7);
+            Assert.AreEqual(new Coords(0, 0, 0, 0), cTest);
+
             // Constraint 2 : edge cases.
             Trace.WriteLine("Constraint 2 : edge cases.");
 
