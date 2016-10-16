@@ -34,7 +34,7 @@ namespace VoxelMashTest.Grids
             for (byte bPath = 0; bPath < 8; bPath++)
             {
                 int iOld = iBalance;
-                cSet.SetPath(bPath);
+                cSet.StepSibling(bPath);
                 scoOctree.Set(cSet, 1, ref iBalance);
                 Assert.AreEqual(iOld + 1, iBalance);
             }
@@ -63,13 +63,13 @@ namespace VoxelMashTest.Grids
             for (byte bPath = 0; bPath < 7; bPath++)
             {
                 int iOld = iDiscard;
-                cSet.SetPath(bPath);
+                cSet.StepSibling(bPath);
                 scoOctree.Set(cSet, 1, ref iDiscard);
                 Assert.AreEqual(iOld + 1, iDiscard);
             }
 
             Assert.AreEqual(7, scoOctree.TerminalCount);
-            cSet.SetPath(0x7);
+            cSet.StepSibling(0x7);
             scoOctree.Set(cSet, 1, ref iDiscard);
             Assert.AreEqual(1, scoOctree.TerminalCount);
             Assert.IsTrue(scoOctree.IsLeaf(new Coords(1, 0, 0, 0)));
@@ -103,7 +103,7 @@ namespace VoxelMashTest.Grids
             Coords cSet = new Coords(0, 0, 0, 0);
             for (byte bPath = 0; bPath < 8; bPath++)
             {
-                cSet.SetPath(bPath);
+                cSet.StepSibling(bPath);
                 scoOctree.Set(cSet, 0, ref iDiscard);
             }
             Assert.AreEqual(0, scoOctree.TerminalCount);

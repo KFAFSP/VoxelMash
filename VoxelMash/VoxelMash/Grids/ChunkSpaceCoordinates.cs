@@ -7,13 +7,16 @@ using VoxelMash.Serialization;
 
 namespace VoxelMash.Grids
 {
+    /// <summary>
+    /// Coordinate tuple that represents a octree leaf in chunk space.
+    /// </summary>
     public struct ChunkSpaceCoordinates :
         IEquatable<ChunkSpaceCoordinates>,
         IComparable<ChunkSpaceCoordinates>
     {
         public sealed class SerializationHandler
         {
-            private bool FAllowPacking;
+            private readonly bool FAllowPacking;
 
             public SerializationHandler(bool AAllowPacking = true)
             {
@@ -155,35 +158,31 @@ namespace VoxelMash.Grids
             public bool AllowPacking
             {
                 get { return this.FAllowPacking; }
-                set { this.FAllowPacking = value; }
             }
         }
 
-        private static readonly SerializationHandler _FPackedHandler = new SerializationHandler(true);
-        public static SerializationHandler PackedHandler
-        {
-            get { return ChunkSpaceCoordinates._FPackedHandler; }
-        }
+        /// <summary>
+        /// The default serialization handler that uses packing.
+        /// </summary>
+        public static readonly SerializationHandler PackedHandler = new SerializationHandler();
 
-        public const byte C_ChunkSize = 0xFF;
-
-        #region Special coordinate constants
-        public static ChunkSpaceCoordinates Root
-        {
-            get { return new ChunkSpaceCoordinates(8, 0, 0, 0); }
-        }
-        public static ChunkSpaceCoordinates FirstVoxel
-        {
-            get { return new ChunkSpaceCoordinates(0, 0, 0, 0); }
-        }
-        public static ChunkSpaceCoordinates LastVoxel
-        {
-            get { return new ChunkSpaceCoordinates(0, 255, 255, 255); }
-        }
-        public static ChunkSpaceCoordinates OutOfRange
-        {
-            get { return ChunkSpaceCoordinates.LastVoxel.GetLastChildPlusOne(); }
-        }
+        #region Special coordinate constants        
+        /// <summary>
+        /// The root node of the chunk octree.
+        /// </summary>
+        public static readonly ChunkSpaceCoordinates Root = new ChunkSpaceCoordinates(0x08000000);
+        /// <summary>
+        /// The first voxel in the chunk.
+        /// </summary>
+        public static readonly ChunkSpaceCoordinates FirstVoxel = new ChunkSpaceCoordinates(0x00000000);
+        /// <summary>
+        /// The last voxel in the chunk.
+        /// </summary>
+        public static readonly ChunkSpaceCoordinates LastVoxel = new ChunkSpaceCoordinates(0x00FFFFFF);
+        /// <summary>
+        /// The first coordinate tuple that is bigger than the chunk (out of range).
+        /// </summary>
+        public static readonly ChunkSpaceCoordinates OutOfRange = new ChunkSpaceCoordinates(0x09000000);
         #endregion
 
         private byte FShift;
@@ -191,6 +190,21 @@ namespace VoxelMash.Grids
         private byte FY;
         private byte FZ;
 
+        private ChunkSpaceCoordinates(uint AValue)
+        {
+            this.FShift = (byte)(AValue >> 24);
+            this.FZ = (byte)((AValue >> 16) & 0xFF);
+            this.FY = (byte)((AValue >> 8) & 0xFF);
+            this.FX = (byte)(AValue & 0xFF);
+        }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ChunkSpaceCoordinates"/> struct.
+        /// </summary>
+        /// <param name="AShift">The level of the node with 8 being the root and 0 being a voxel.</param>
+        /// <param name="AX">The X coordinate.</param>
+        /// <param name="AY">The Y coordinate.</param>
+        /// <param name="AZ">The Z coordinate.</param>
+        /// <exception cref="System.ArgumentException">Shift must be less or equal to 8.</exception>
         public ChunkSpaceCoordinates(
             byte AShift,
             byte AX, byte AY, byte AZ)
@@ -206,6 +220,11 @@ namespace VoxelMash.Grids
             this.FZ = (byte)(AZ & bMask);
         }
 
+        /// <summary>
+        /// Steps this node down to a smaller node (in Root->Voxel direction) along the specified path.
+        /// </summary>
+        /// <param name="APath">The 3 bit path mask: 00000zyx.</param>
+        /// <exception cref="System.InvalidOperationException">Cannot step down voxel address volume.</exception>
         public void StepDown(byte APath)
         {
             if (this.FShift == 0)
@@ -216,10 +235,15 @@ namespace VoxelMash.Grids
             this.FY = (byte)((this.FY << 1) | ((APath & 0x2) >> 1));
             this.FZ = (byte)((this.FZ << 1) | ((APath & 0x4) >> 2));
         }
+        /// <summary>
+        /// Steps this node up to a bigger node (in Voxel->Root direction).
+        /// </summary>
+        /// <param name="AAmount">The number of nodes to step up.</param>
+        /// <returns><c>true</c> if the node changed, <c>false</c> if no step-up was possible.</returns>
         public bool StepUp(byte AAmount = 0x1)
         {
             AAmount = (byte)Math.Min(AAmount, 8 - this.FShift);
-            if (AAmount == 0)
+            if (AAmount <= 0)
                 return false;
 
             this.FShift += AAmount;
@@ -228,9 +252,15 @@ namespace VoxelMash.Grids
             this.FZ >>= AAmount;
             return true;
         }
-
-        public void SetPath(byte APath)
+        /// <summary>
+        /// Steps to another node attached to this node's parent node (sibling).
+        /// </summary>
+        /// <param name="APath">The 3 bit path mask: 00000zyx.</param>
+        public void StepSibling(byte APath)
         {
+            if (this.FShift >= 8)
+                return;
+
             if ((APath & 0x1) == 0x1)
                 this.FX |= 0x01;
             else
@@ -247,6 +277,71 @@ namespace VoxelMash.Grids
                 this.FZ &= 0xFE;
         }
 
+        /// <summary>
+        /// Moves to the previous node with the same shift.
+        /// </summary>
+        /// <returns><c>true</c> if the previous node exists, <c>false</c> otherwise.</returns>
+        public bool Previous()
+        {
+            if (this.FShift >= 8)
+                return false;
+
+            byte[] aPath = new byte[8 - this.FShift];
+            byte I = 0;
+
+            do
+            {
+                aPath[I] = this.GetPath();
+                if (aPath[I] > 0x0)
+                    break;
+                I++;
+                if (!this.StepUp())
+                    return false;
+            } while (true);
+
+            this.StepSibling((byte)(aPath[I] - 1));
+
+            while (I > 0)
+            {
+                this.StepDown(0x07);
+                I--;
+            }
+
+            return true;
+        }
+        /// <summary>
+        /// Moves to the next node with the same shift.
+        /// </summary>
+        /// <returns><c>true</c> if the next node exists, <c>false</c> otherwise.</returns>
+        public bool Next()
+        {
+            if (this.FShift >= 8)
+                return false;
+
+            byte[] aPath = new byte[8 - this.FShift];
+            byte I = 0;
+
+            do
+            {
+                aPath[I] = this.GetPath();
+                if (aPath[I] < 0x7)
+                    break;
+                I++;
+                if (!this.StepUp())
+                    return false;
+            } while (true);
+
+            this.StepSibling((byte)(aPath[I] + 1));
+
+            while (I > 0)
+            {
+                this.StepDown(0x00);
+                I--;
+            }
+
+            return true;
+        }
+
         public void MoveRight()
         {
             do
@@ -260,7 +355,7 @@ namespace VoxelMash.Grids
                 byte bPath = this.GetPath();
                 if (bPath < 0x7)
                 {
-                    this.SetPath((byte)(bPath + 1));
+                    this.StepSibling((byte)(bPath + 1));
                     return;
                 }
 
@@ -316,7 +411,7 @@ namespace VoxelMash.Grids
         public ChunkSpaceCoordinates GetSibling(byte APath)
         {
             ChunkSpaceCoordinates cscSibling = this;
-            cscSibling.SetPath(APath);
+            cscSibling.StepSibling(APath);
             return cscSibling;
         }
 
@@ -352,7 +447,7 @@ namespace VoxelMash.Grids
                         return cscResult;
                     }
 
-                    cscResult.SetPath((byte)(bPath + 1));
+                    cscResult.StepSibling((byte)(bPath + 1));
                     return cscResult;
                 }
 
@@ -502,7 +597,7 @@ namespace VoxelMash.Grids
             ChunkSpaceCoordinates ALeft,
             byte APath)
         {
-            ALeft.SetPath(APath);
+            ALeft.StepSibling(APath);
             return ALeft;
         }
 

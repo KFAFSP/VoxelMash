@@ -112,6 +112,65 @@ namespace VoxelMashTest.Grids
         }
 
         [TestMethod]
+        public void StepSibling()
+        {
+            // Constraint 1 : Stepping to itself.
+            Trace.WriteLine("Constraint 1 : stepping to itself.");
+            Coords cTest = new Coords(0, 8, 4, 1), cStep = cTest;
+            cStep.StepSibling(cStep.GetPath());
+            Assert.AreEqual(cTest, cStep);
+
+            // Constraint 2 : correctness.
+            Trace.WriteLine("Constraint 2 : correctness.");
+
+            // Example : (0, 1|0|0) is 1st neighour of (0, 0|0|0).
+            Trace.WriteLine("Example 1 : voxel case.");
+            cTest = new Coords(0, 0, 0, 0);
+            cTest.StepSibling(1);
+            Assert.AreEqual(new Coords(0, 1, 0, 0), cTest);
+
+            // Example : (2, 0|1|0) is 2nd neighour of (2, 0|0|0).
+            Trace.WriteLine("Example 2 : higher-level case.");
+            cTest = new Coords(2, 0, 0, 0);
+            cTest.StepSibling(2);
+            Assert.AreEqual(new Coords(2, 0, 1, 0), cTest);
+
+            // Constraint 3 : (8, 0|0|0) has no siblings.
+            Trace.WriteLine("Constraint 3 : root case.");
+            cTest = new Coords(8, 0, 0, 0);
+            cTest.StepSibling(1);
+            Assert.AreEqual(new Coords(8, 0, 0, 0), cTest);
+        }
+
+        [TestMethod]
+        public void PreviousNext()
+        {
+            Coords cTest = new Coords(0, 0, 0, 0);
+
+            // Constraint 1 : correctness.
+            Trace.WriteLine("Constraint 1 : correctness.");
+
+            // Example : sibling case.
+            Trace.WriteLine("Example 2 : sibling case.");
+            Assert.IsTrue(cTest.Next());
+            Assert.AreEqual(new Coords(0, 1, 0, 0), cTest);
+            Assert.IsTrue(cTest.Next());
+            Assert.AreEqual(new Coords(0, 0, 1, 0), cTest);
+            Assert.IsTrue(cTest.Previous());
+            Assert.AreEqual(new Coords(0, 1, 0, 0), cTest);
+            Assert.IsTrue(cTest.Previous());
+            Assert.AreEqual(new Coords(0, 0, 0, 0), cTest);
+
+            // Example : up-stepping case.
+            Trace.WriteLine("Example 2 : up-stepping case.");
+            cTest = new Coords(0, 1, 1, 1);
+            Assert.IsTrue(cTest.Next());
+            Assert.AreEqual(new Coords(0, 2, 0, 0), cTest);
+            Assert.IsTrue(cTest.Previous());
+            Assert.AreEqual(new Coords(0, 1, 1, 1), cTest);
+        }
+
+        [TestMethod]
         public void MoveRight()
         {
             // Constraint 1 : voxels should return their siblings.
