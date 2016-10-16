@@ -170,19 +170,19 @@ namespace VoxelMash.Grids
         /// <summary>
         /// The root node of the chunk octree.
         /// </summary>
-        public static readonly ChunkSpaceCoordinates Root = new ChunkSpaceCoordinates(0x08000000);
+        public static ChunkSpaceCoordinates Root { get { return new ChunkSpaceCoordinates(0x08000000); } } 
         /// <summary>
         /// The first voxel in the chunk.
         /// </summary>
-        public static readonly ChunkSpaceCoordinates FirstVoxel = new ChunkSpaceCoordinates(0x00000000);
+        public static ChunkSpaceCoordinates FirstVoxel { get { return  new ChunkSpaceCoordinates(0x00000000); } } 
         /// <summary>
         /// The last voxel in the chunk.
         /// </summary>
-        public static readonly ChunkSpaceCoordinates LastVoxel = new ChunkSpaceCoordinates(0x00FFFFFF);
+        public static ChunkSpaceCoordinates LastVoxel { get { return  new ChunkSpaceCoordinates(0x00FFFFFF); } } 
         /// <summary>
         /// The first coordinate tuple that is bigger than the chunk (out of range).
         /// </summary>
-        public static readonly ChunkSpaceCoordinates OutOfRange = new ChunkSpaceCoordinates(0x09000000);
+        public static ChunkSpaceCoordinates OutOfRange { get { return  new ChunkSpaceCoordinates(0x09000000); } }
         #endregion
 
         private byte FShift;
@@ -295,7 +295,7 @@ namespace VoxelMash.Grids
                 if (aPath[I] > 0x0)
                     break;
                 I++;
-                if (!this.StepUp())
+                if (!this.StepUp() || this.FShift == 8)
                     return false;
             } while (true);
 
@@ -327,7 +327,7 @@ namespace VoxelMash.Grids
                 if (aPath[I] < 0x7)
                     break;
                 I++;
-                if (!this.StepUp())
+                if (!this.StepUp() || this.FShift == 8)
                     return false;
             } while (true);
 

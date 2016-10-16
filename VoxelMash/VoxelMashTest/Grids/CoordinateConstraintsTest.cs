@@ -145,13 +145,12 @@ namespace VoxelMashTest.Grids
         [TestMethod]
         public void PreviousNext()
         {
-            Coords cTest = new Coords(0, 0, 0, 0);
-
             // Constraint 1 : correctness.
             Trace.WriteLine("Constraint 1 : correctness.");
 
             // Example : sibling case.
-            Trace.WriteLine("Example 2 : sibling case.");
+            Trace.WriteLine("Example 1 : sibling case.");
+            Coords cTest = new Coords(0, 0, 0, 0);
             Assert.IsTrue(cTest.Next());
             Assert.AreEqual(new Coords(0, 1, 0, 0), cTest);
             Assert.IsTrue(cTest.Next());
@@ -168,6 +167,19 @@ namespace VoxelMashTest.Grids
             Assert.AreEqual(new Coords(0, 2, 0, 0), cTest);
             Assert.IsTrue(cTest.Previous());
             Assert.AreEqual(new Coords(0, 1, 1, 1), cTest);
+
+            // Constraint 2 : edge cases.
+            Trace.WriteLine("Constraint 2 : edge cases.");
+
+            // Example 1 : root case.
+            Trace.WriteLine("Example 1 : root case.");
+            Assert.IsFalse(new Coords(8, 0, 0, 0).Next());
+            Assert.IsFalse(new Coords(8, 0, 0, 0).Previous());
+
+            // Example 2 : first/last
+            Trace.WriteLine("Example 2 : first/last.");
+            Assert.IsFalse(Coords.LastVoxel.Next());
+            Assert.IsFalse(Coords.FirstVoxel.Previous());
         }
 
         [TestMethod]
