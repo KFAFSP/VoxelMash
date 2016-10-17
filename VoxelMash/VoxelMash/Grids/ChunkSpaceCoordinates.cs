@@ -9,13 +9,37 @@ namespace VoxelMash.Grids
         IEquatable<ChunkSpaceCoordinates>,
         IComparable<ChunkSpaceCoordinates>
     {
-        public static ChunkSpaceCoordinates Root { get { return new ChunkSpaceCoordinates(8, 0, 0, 0); } }
+        public static uint AsUInt32(ChunkSpaceCoordinates ACoords)
+        {
+            uint nResult = ACoords.FX;
+            nResult |= (uint)(ACoords.FShift << 24);
+            nResult |= (uint)(ACoords.FZ << 16);
+            nResult |= (uint)(ACoords.FY << 8);
+            return nResult;
+        }
+        public static ChunkSpaceCoordinates FromUInt32(uint AUInt32)
+        {
+            return new ChunkSpaceCoordinates(AUInt32);
+        }
+
+        public static ChunkSpaceCoordinates Root { get { return new ChunkSpaceCoordinates(0x08000000); } }
+
+        public static ChunkSpaceCoordinates FirstVoxel { get { return new ChunkSpaceCoordinates(0x00000000); } }
+        public static ChunkSpaceCoordinates LastVoxel { get { return new ChunkSpaceCoordinates(0x00FFFFFF); } }
 
         private byte FShift;
         private byte FX;
         private byte FY;
         private byte FZ;
 
+        private ChunkSpaceCoordinates(
+            uint AValue)
+        {
+            this.FShift = (byte)(AValue >> 24);
+            this.FZ = (byte)((AValue >> 16) & 0xFF);
+            this.FY = (byte)((AValue >> 8) & 0xFF);
+            this.FX = (byte)(AValue & 0xFF);
+        }
         public ChunkSpaceCoordinates(
             byte AShift,
             byte AX, byte AY, byte AZ)
@@ -31,21 +55,19 @@ namespace VoxelMash.Grids
             this.FZ = (byte)(AZ & bMask);
         }
 
-        public void StepDown(byte APath)
+        public bool StepDown(byte APath)
         {
-            if (this.FShift == 0)
-                throw new InvalidOperationException("Cannot step down voxel address volume.");
+            if (this.FShift == 0) return false;
 
             this.FShift--;
             this.FX = (byte)((this.FX << 1) | (APath & 0x1));
             this.FY = (byte)((this.FY << 1) | ((APath & 0x2) >> 1));
             this.FZ = (byte)((this.FZ << 1) | ((APath & 0x4) >> 2));
+            return true;
         }
         public bool StepUp(byte AAmount = 0x1)
         {
-            AAmount = (byte)Math.Min(AAmount, 8 - this.FShift);
-            if (AAmount == 0)
-                return false;
+            if (AAmount > 8 - this.FShift) return false;
 
             this.FShift += AAmount;
             this.FX >>= AAmount;
@@ -56,6 +78,8 @@ namespace VoxelMash.Grids
 
         public void SetPath(byte APath)
         {
+            if (this.FShift >= 8) return;
+
             if ((APath & 0x1) == 0x1)
                 this.FX |= 0x01;
             else
@@ -70,6 +94,48 @@ namespace VoxelMash.Grids
                 this.FZ |= 0x01;
             else
                 this.FZ &= 0xFE;
+        }
+
+        public bool Previous(int AAmount = 1)
+        {
+            if (AAmount == 0) return true;
+            if (this.FShift >= 8) return false;
+
+            byte bPath = this.GetPath();
+            if (bPath >= AAmount)
+            {
+                this.SetPath((byte)(bPath - AAmount));
+                return true;
+            }
+
+            this.StepUp();
+            if (!this.Previous(AAmount < 8 ? 1 : AAmount / 8))
+                return false;
+
+            this.StepDown((byte)(8 - AAmount % 8));
+            return true;
+        }
+        public bool Next(int AAmount = 1)
+        {
+            if (AAmount == 0) return true;
+            if (this.FShift >= 8) return false;
+
+            byte bPath = this.GetPath();
+            if (0x07 - bPath >= AAmount)
+            {
+                this.SetPath((byte)(bPath + AAmount));
+                return true;
+            }
+
+            this.StepUp();
+            if (!this.Next(AAmount < 8 ? 1 : AAmount / 8))
+                return false;
+
+            if (AAmount < 8)
+                AAmount--;
+
+            this.StepDown((byte)(AAmount % 8));
+            return true;
         }
 
         #region Pure methods

@@ -111,6 +111,22 @@ namespace VoxelMashTest
         }
 
         [TestMethod]
+        public void SetPath()
+        {
+            // Constraint 1 : root node constance.
+            Trace.WriteLine("Constraint 1 : root node constance.");
+            Coords cTest = Coords.Root;
+            cTest.SetPath(0x01);
+            Assert.AreEqual(Coords.Root, cTest);
+        }
+
+        [TestMethod]
+        public void NextPrevious()
+        {
+            
+        }
+
+        [TestMethod]
         public void IsParentOf()
         {
             // Constraint 1 : (8, 0|0|0) is parent of anything.
