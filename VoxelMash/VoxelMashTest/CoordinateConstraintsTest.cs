@@ -50,12 +50,7 @@ namespace VoxelMashTest
         {
             // Constraint 1 : (0, x|y|z) cannot be stepped-down.
             Trace.WriteLine("Contraint 1 : leaf node step-down is invalid.");
-            try
-            {
-                new Coords(0, 1, 2, 3).StepDown(0x0);
-                Assert.Fail("Failed to throw expection.");
-            }
-            catch (InvalidOperationException) { }
+            Assert.IsFalse(new Coords(0, 1, 2, 3).StepDown(0x0));
 
             // Constraint 2 : parent-child relationship respected.
             Trace.WriteLine("Constraint 2 : correctness.");
@@ -101,8 +96,8 @@ namespace VoxelMashTest
                 new Coords(4, 12, 1, 0),
                 new Coords(0, 200, 24, 1).GetParent(4));
 
-            // Constraint 3 : step-up without changes yields false.
-            Trace.WriteLine("Constraint 3 : step-up without changes yields false.");
+            // Constraint 3 : step-up yields false if too amount too high.
+            Trace.WriteLine("Constraint 3 : step-up yields false if amount too high.");
             Assert.IsFalse(new Coords(8, 0, 0, 0).StepUp());
 
             // Constraint 4 : step-up with changes yields true.
